@@ -1,40 +1,30 @@
+import tensorflow as tf
 import keras
 from keras.layers import *
 from keras.models import Sequential, Model
 from keras.utils import Sequence
 from qkeras import *
-
-import tensorflow as tf
 from tensorflow.keras import datasets, layers, models
 
 def var_network(var, hidden=10, output=2):
     var = Flatten(name="flatten_var")(var)
-    var = QDense(
+    var = Dense(
         hidden,
-        kernel_quantizer=quantized_bits(8, 0, alpha=1),
-        bias_quantizer=quantized_bits(8, 0, alpha=1),
         kernel_regularizer=tf.keras.regularizers.L1L2(0.01),
         activity_regularizer=tf.keras.regularizers.L2(0.01),
-        name="dense_1"
     )(var)
     #var = keras.activations.tanh(var)
-    var = QActivation("quantized_tanh(8, 0, 1)", name="activation_tanh_2")(var)
-    var = QDense(
+    var = Activation("tanh", name="activation_tanh_1")(var)
+    var = Dense(
         hidden,
-        kernel_quantizer=quantized_bits(8, 0, alpha=1),
-        bias_quantizer=quantized_bits(8, 0, alpha=1),
         kernel_regularizer=tf.keras.regularizers.L1L2(0.01),
         activity_regularizer=tf.keras.regularizers.L2(0.01),
-        name="dense_2"
     )(var)
     #var = keras.activations.tanh(var)
-    var = QActivation("quantized_tanh(8, 0, 1)", name="activation_tanh_3")(var)
-    return QDense(
+    var = Activation("tanh", name="activation_tanh_2")(var)
+    return Dense(
         output,
-        kernel_quantizer=quantized_bits(8, 0, alpha=1),
-        bias_quantizer=quantized_bits(8, 0, alpha=1),
         kernel_regularizer=tf.keras.regularizers.L1L2(0.01),
-        name="dense_3"
     )(var)
 
 def mlp_encoder_network(var, hidden=16, hidden_dimx=16, hidden_dimy=16):
@@ -54,35 +44,29 @@ def mlp_encoder_network(var, hidden=16, hidden_dimx=16, hidden_dimy=16):
     )(var)
     proj_y = Flatten()(proj_y)
 
-    proj_x = QDense(
+    proj_x = Dense(
         hidden_dimx,
-        kernel_quantizer=quantized_bits(8, 0, alpha=1),
-        bias_quantizer=quantized_bits(8, 0, alpha=1),
         kernel_regularizer=tf.keras.regularizers.L1L2(0.01),
         activity_regularizer=tf.keras.regularizers.L2(0.01),
     )(proj_x)
-    proj_x = QActivation("quantized_relu(bits=13, integer=5)")(proj_x)
+    proj_x = Activation("relu")(proj_x)
 
-    proj_y = QDense(
+    proj_y = Dense(
         hidden_dimy,
-        kernel_quantizer=quantized_bits(8, 0, alpha=1),
-        bias_quantizer=quantized_bits(8, 0, alpha=1),
         kernel_regularizer=tf.keras.regularizers.L1L2(0.01),
         activity_regularizer=tf.keras.regularizers.L2(0.01),
     )(proj_y)
-    proj_y = QActivation("quantized_relu(bits=13, integer=5)")(proj_y)
+    proj_y = Activation("relu")(proj_y)
 
     var = Concatenate(axis=1)([proj_x, proj_y])
 
-    var = QDense(
+    var = Dense(
         hidden,
-        kernel_quantizer=quantized_bits(8, 0, alpha=1),
-        bias_quantizer=quantized_bits(8, 0, alpha=1),
         kernel_regularizer=tf.keras.regularizers.L1L2(0.01),
         activity_regularizer=tf.keras.regularizers.L2(0.01),
     )(var)
 
-    var = QActivation("quantized_tanh(8, 0, 1)")(var)
+    var = Activation("tanh")(var)
     return var
 
 def CreateModel_Slim(shape):

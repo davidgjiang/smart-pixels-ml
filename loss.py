@@ -33,6 +33,21 @@ def custom_loss(y, p_base, minval=1e-9, maxval=1e9):
 
     return tf.keras.backend.sum(NLL)
 
+# for FULL model (8 outputs)
+def custom_diag_loss(y, p_base, minval=1e-9, maxval=1e9):
+    mu = p_base[:, 0:4]
+    
+    raw_diag = p_base[:, 4:8]
+    Mdia  = tf.nn.softplus(raw_diag) + minval
+    
+    dist = tfp.distributions.MultivariateNormalDiag(
+        loc=mu,
+        scale_diag=Mdia
+    )
+    NLL = -dist.log_prob(y)
+
+    return tf.reduce_sum(NLL) 
+    
 @tf.function
 def empirical_kl(p_vals, q_vals, epsilon=1e-10):
     # p_vals: (dims, n_grid)
