@@ -21,7 +21,7 @@ def preselection_processing(input_directory, output_directory, file_type='parque
     # Process each file
     for i in tqdm(range(len(simulation_files)), desc="Processing files..."):
         temp_df = pd.read_parquet(simulation_files[i])
-        filtered_df = temp_df[temp_df['original_atEdge'] == False]
+        filtered_df = temp_df[temp_df['chargeOriginal_atEdge'] < 50]
         final_df = filtered_df.reset_index(drop=True)
 
         # Save to new directory
@@ -30,6 +30,8 @@ def preselection_processing(input_directory, output_directory, file_type='parque
 
 if __name__ == '__main__':
     print('*** Preselection Processor ***')
-    preselection_processing(input_directory='/data/dajiang/smart-pixels/dataset_3sr/shuffled/dataset_3sr_16x16_50x12P5_parquets/all/', 
-                            output_directory='/data/dajiang/smart-pixels/dataset_3sr/shuffled/dataset_3sr_16x16_50x12P5_parquets/contained/')
+    preselection_processing(input_directory='/data/dajiang/smart-pixels/largerWindowPreliminary/dataset_3sr_16x16_50x12P5_parquets/shuffled/test/', 
+                            output_directory='/data/dajiang/smart-pixels/largerWindowPreliminary/dataset_3sr_16x16_50x12P5_parquets/shuffled/test_contained/')
+    preselection_processing(input_directory='/data/dajiang/smart-pixels/largerWindowPreliminary/dataset_3sr_16x16_50x12P5_parquets/shuffled/train/', 
+                            output_directory='/data/dajiang/smart-pixels/largerWindowPreliminary/dataset_3sr_16x16_50x12P5_parquets/shuffled/train_contained/')
     print('Processing done.')

@@ -58,3 +58,16 @@ def CreateModel(shape, n_filters, pool_size):
     stack = var_network(stack, hidden=16, output=14)
     model = Model(inputs=x_in, outputs=stack)
     return model
+
+def CreateModel_Full(shape, n_filters, pool_size):
+    x_base = x_in = Input(shape)
+    stack = conv_network(x_base)
+    stack = AveragePooling2D(
+        pool_size=(pool_size, pool_size),
+        strides=None,
+        padding="valid",
+        data_format=None,
+    )(stack)
+    stack = var_network(stack, hidden=16, output=8)
+    model = Model(inputs=x_in, outputs=stack)
+    return model

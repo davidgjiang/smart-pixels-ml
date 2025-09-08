@@ -6,6 +6,7 @@ from qkeras import *
 
 import tensorflow as tf
 from tensorflow.keras import datasets, layers, models
+from SoftQuantizeLayer import SoftQuantizeLayer
 
 def var_network(var, hidden=10, output=2):
     var = Flatten(name="flatten_var")(var)
@@ -94,6 +95,40 @@ def CreateModel_Slim(shape):
 
 def CreateModel_Full(shape):
     x_base = x_in = Input(shape, name="input_pxls/")
+    stack = mlp_encoder_network(x_base)
+    stack = var_network(stack, hidden=16, output=8) # this network should only be used with 'slim' (3) or 'full' (8) regression targets
+    model = Model(inputs=x_in, outputs=stack, name="smrtpxl_regression")
+    return model
+
+def CreateModel_Slim_SoftQuantizer(shape):
+    x_base = x_in = Input(shape, name="input_pxls/")
+    x_base = SoftQuantizeLayer(
+        n_bits=2,                     
+        initial_range=[-1.0, 1.0],    
+        trainable_levels=False,
+        trainable_thresholds=True,          
+        initial_k=1.0,                
+        trainable_k=True,             
+        name='soft_quantizer_output'  
+    )(x_base)
+
+    stack = mlp_encoder_network(x_base)
+    stack = var_network(stack, hidden=16, output=3) # this network should only be used with 'slim' (3) or 'full' (8) regression targets
+    model = Model(inputs=x_in, outputs=stack, name="smrtpxl_regression")
+    return model
+    
+def CreateModel_Full_SoftQuantizer(shape):
+    x_base = x_in = Input(shape, name="input_pxls/")
+    x_base = SoftQuantizeLayer(
+        n_bits=2,                     
+        initial_range=[-1.0, 1.0],    
+        trainable_levels=False,
+        trainable_thresholds=True,          
+        initial_k=1.0,                
+        trainable_k=True,             
+        name='soft_quantizer_output'  
+    )(x_base)
+
     stack = mlp_encoder_network(x_base)
     stack = var_network(stack, hidden=16, output=8) # this network should only be used with 'slim' (3) or 'full' (8) regression targets
     model = Model(inputs=x_in, outputs=stack, name="smrtpxl_regression")

@@ -17,7 +17,7 @@ from tqdm import tqdm
 import tensorflow as tf
 from qkeras import quantized_bits
 
-import utils
+from . import utils
 
 # custom quantizer
 

@@ -2,6 +2,7 @@ from keras.layers import Input, Flatten, AveragePooling2D
 from keras.models import Model
 from qkeras import QDense, QActivation, QConv2D, QSeparableConv2D, quantized_bits
 import tensorflow as tf
+from SoftQuantizeLayer import SoftQuantizeLayer
 
 def var_network(var, hidden=10, output=2):
     var = Flatten()(var)
@@ -55,7 +56,7 @@ def conv_network(var, n_filters=5, kernel_size=3):
     var = QActivation("quantized_tanh(4, 0, 1)")(var)    
     return var
      
-def CreateModel(shape, n_filters, pool_size):
+def CreateModel_Max(shape, n_filters, pool_size):
     x_base = x_in = Input(shape)
     stack = conv_network(x_base)
     stack = AveragePooling2D(
@@ -69,6 +70,40 @@ def CreateModel(shape, n_filters, pool_size):
     model = Model(inputs=x_in, outputs=stack)
     return model
 
-################# NON-QUANTIZED MODEL ########################################
+def CreateModel_Max_SoftQuantizer(shape, n_filters, pool_size):
+    x_base = x_in = Input(shape)
+    x_base = SoftQuantizeLayer(
+        n_bits=2,                     
+        initial_range=[-1.0, 1.0],    
+        trainable_levels=False,
+        trainable_bins=True,          
+        initial_k=1.0,                
+        trainable_k=True,             
+        name='soft_quantizer_output'  
+    )(x_base)
+    stack = conv_network(x_base)
+    stack = AveragePooling2D(
+        pool_size=(pool_size, pool_size), 
+        strides=None, 
+        padding="valid", 
+        data_format=None,        
+    )(stack)
+    stack = QActivation("quantized_bits(8, 0, alpha=1)")(stack)
+    stack = var_network(stack, hidden=16, output=14)
+    model = Model(inputs=x_in, outputs=stack)
+    return model
 
+def CreateModel_Full(shape, n_filters, pool_size):
+    x_base = x_in = Input(shape)
+    stack = conv_network(x_base)
+    stack = AveragePooling2D(
+        pool_size=(pool_size, pool_size), 
+        strides=None, 
+        padding="valid", 
+        data_format=None,        
+    )(stack)
+    stack = QActivation("quantized_bits(8, 0, alpha=1)")(stack)
+    stack = var_network(stack, hidden=16, output=8)
+    model = Model(inputs=x_in, outputs=stack)
+    return model
 
