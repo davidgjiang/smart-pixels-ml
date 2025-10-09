@@ -4,7 +4,7 @@ Our strategy to determine the most optimal charge bins relies on attaching a pri
 ## What is the procedure that I have to follow in order to recreate this optimization process?
 The training comes in 2 main parts. 
 
-The **first part** is training a model of your choice with the soft quantize layer. In our example notebook, `part_1_train_soft-quantizer_mlp-SLIM.ipynb`, we are training the `mlp-SLIM` model, which is a multilayer perception that predicts 3 outputs: x-midplane, y-midplane, and cot($\beta$). In this notebook, make sure to edit the paths to where you saved your input data and where you want your TFRecords to be saved to. This includes:
+The **first part** is training a model of your choice with the soft quantize layer. In our example notebook, `part_1_train_soft-quantizer_mlp-SLIM.ipynb`, we are training the `mlp-SLIM` model, which is a multilayer perceptron that predicts 3 outputs: x-midplane, y-midplane, and cot($\beta$). In this notebook, make sure to edit the paths to where you saved your input data and where you want your TFRecords to be saved to. This includes:
 * `dataset_base_dir`: the "parent" directory where all of your datasets are/will be located
 * `dataset_train_dir`, `dataset_validation_dir`: the subdirectory within `dataset_base_dir` where your input datasets live (ex: dataset_3src_16x16_50x12P5)
 * `tfrecords_dir_train`, `tfrecords_dir_val` the subdirectory within `dataset_base_dir` where your new TFRecords datasets *will* live
@@ -29,3 +29,4 @@ The **second part** is training the same model (ex: mlp-SLIM) without the soft q
 
 ## How can I save and note down the final model after all this training?
 `vars_from_weights.ipynb` is the final notebook that you need to run. This gives you the name of the best model checkpoint (ex: `Best model: weights.1989-t33.02-v31.84.hdf5`) and saves performance data in an output parquet file to a path of your choice. Just make sure to update the correct paths according to your own local environment!
+
