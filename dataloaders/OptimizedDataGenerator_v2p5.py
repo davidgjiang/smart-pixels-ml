@@ -66,6 +66,7 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
             norm_pos_pctl: float = 99.7,
             norm_neg_pctl: float = 99.7,
             tail_tol: float = 0.75,
+            labels_scale = None,
             **kwargs,
             ):
         super().__init__() 
@@ -109,7 +110,7 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
             self.dataset_std = None
             self.norm_factor_pos = None  
             self.norm_factor_neg = None
-            self.labels_scale = None
+            self.labels_scale = labels_scale
 
             self.labels_list = labels_list
             self.input_shape = input_shape
@@ -275,7 +276,7 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
     def process_file_parallel(self):
         file_infos = [(afile, 
                     self.recon_cols, self.labels_list, self.noise, self.min_threshold, self.max_threshold, self.select_contained, 
-                    self.log_compression, self.label_scale_pctl, self.norm_pos_pctl, self.norm_neg_pctl) 
+                    self.log_compression, self.label_scale_pctl, self.norm_pos_pctl, self.norm_neg_pctl, self.labels_scale) 
                     for afile in self.files
                     ]
         results = []
@@ -283,6 +284,10 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
             futures = [executor.submit(self._process_file_single, file_info) for file_info in file_infos]
             for future in tqdm(as_completed(futures), total=len(file_infos), desc="Processing Files..."):
                 results.append(future.result())
+
+        manual_labels_scale = False
+        if self.labels_scale is not None:
+            manual_labels_scale = True
 
         for amean, avariance, amin, amax, num_rows, labels_scale, pos_scale, neg_scale in results:
             self.file_offsets.append(self.file_offsets[-1] + num_rows)
@@ -300,7 +305,7 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
             
             if self.labels_scale is None:
                 self.labels_scale = labels_scale
-            else:
+            elif manual_labels_scale == False:
                 self.labels_scale = np.maximum(self.labels_scale, labels_scale)
 
             self.norm_factor_pos = (pos_scale if self.norm_factor_pos is None
@@ -315,7 +320,7 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
 
     @staticmethod
     def _process_file_single(file_info):
-        afile, recon_cols, labels_list, noise, min_threshold, max_threshold, select_contained, log_compression, label_scale_pctl, norm_pos_pctl, norm_neg_pctl = file_info
+        afile, recon_cols, labels_list, noise, min_threshold, max_threshold, select_contained, log_compression, label_scale_pctl, norm_pos_pctl, norm_neg_pctl, custom_labels_scale = file_info
         if select_contained:
             df = (pd.read_parquet(afile, 
                                  columns=recon_cols + labels_list +['original_atEdge'])
@@ -338,7 +343,10 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
             abovethresh = x > max_threshold
             x[abovethresh] = max_threshold
             
-        
+        manual_labels_scale = False
+        if custom_labels_scale is not None:
+            manual_labels_scale = True
+            
         nonzeros = abs(x) > 0
         if log_compression:
             x[nonzeros] = np.sign(x[nonzeros]) * np.log1p(abs(x[nonzeros])) / math.log(2)
@@ -358,7 +366,11 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
         len_adf = len(df)
 
         labels_values = df[labels_list].values
-        labels_scale = np.percentile(np.abs(labels_values), label_scale_pctl, axis=0)
+        
+        if manual_labels_scale == False:
+            labels_scale = np.percentile(np.abs(labels_values), label_scale_pctl, axis=0)
+        else:
+            labels_scale = custom_labels_scale
 
         del df
         gc.collect()
@@ -529,12 +541,12 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
             if file_idx != self.current_file_index:
                 parquet_file = self.files[file_idx]
                 if self.select_contained:
-                    all_columns_to_read = self.recon_cols + self.labels_list + ['original_atEdge']
+                    all_columns_to_read = self.recon_cols + self.labels_list + ['chargeOriginal_atEdge']
                     df = (pd.read_parquet(parquet_file, 
                                          columns = all_columns_to_read)
                             .dropna(subset=self.recon_cols)
                             .reset_index(drop=True))
-                    df = df.loc[df['original_atEdge'] == False]
+                    df = df.loc[df['chargeOriginal_atEdge'] < 50]
                 else:
                     all_columns_to_read = self.recon_cols + self.labels_list
                     df =(pd.read_parquet(parquet_file, 

@@ -73,15 +73,15 @@ def CreateModel_Full(shape, n_filters, pool_size):
     model = Model(inputs=x_in, outputs=stack)
     return model
 
-def CreateModel_Max_SoftQuantizer(shape, n_filters, pool_size, initial_thresholds, threshold_offset, initial_levels=None):
+def CreateModel_Max_SoftQuantizer(shape, n_filters, pool_size, initial_thresholds, threshold_offset, initial_levels=None, trainable_thresholds=True):
     x_base = x_in = Input(shape)
     x_base = SoftQuantizeLayer(
         n_bits=2,                     
         initial_thresholds=initial_thresholds,
+        threshold_offset=threshold_offset,
         initial_levels=initial_levels,
-        threshold_offset=threshold_offset,    
         trainable_levels=False,
-        trainable_threshold=True,
+        trainable_thresholds=trainable_thresholds,
         initial_k=1.0,                
         trainable_k=True,             
         name='soft_quantizer_output'  
@@ -97,7 +97,7 @@ def CreateModel_Max_SoftQuantizer(shape, n_filters, pool_size, initial_threshold
     model = Model(inputs=x_in, outputs=stack)
     return model
     
-def CreateModel_Full_SoftQuantizer(shape, n_filters, pool_size, initial_thresholds, threshold_offset, initial_levels=None):
+def CreateModel_Full_SoftQuantizer(shape, n_filters, pool_size, initial_thresholds, threshold_offset, initial_levels=None, trainable_thresholds=True):
     x_base = x_in = Input(shape)
     x_base = SoftQuantizeLayer(
         n_bits=2,                     
@@ -105,7 +105,7 @@ def CreateModel_Full_SoftQuantizer(shape, n_filters, pool_size, initial_threshol
         threshold_offset=threshold_offset,
         initial_levels=initial_levels,
         trainable_levels=False,
-        trainable_thresholds=True,
+        trainable_thresholds=trainable_thresholds,
         initial_k=1.0,                
         trainable_k=True,             
         name='soft_quantizer_output'  
