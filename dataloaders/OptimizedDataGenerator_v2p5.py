@@ -55,7 +55,7 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
             load_from_tfrecords_dir: str = None,
             tfrecords_dir: str = None,
             use_time_stamps = -1,
-            select_contained = False, #If true, selects only clusters with original_atEdge==False
+            select_contained = False, #If true, selects only clusters with chargeOriginal_atEdge<50
             noise = -1, #add gaussian noise (mu, sigma), set to -1 to turn off
             seed: int = None,
             min_threshold: float = None, #Zeros out charge<min_thresh
@@ -323,9 +323,9 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
         afile, recon_cols, labels_list, noise, min_threshold, max_threshold, select_contained, log_compression, label_scale_pctl, norm_pos_pctl, norm_neg_pctl, custom_labels_scale = file_info
         if select_contained:
             df = (pd.read_parquet(afile, 
-                                 columns=recon_cols + labels_list +['original_atEdge'])
+                                 columns=recon_cols + labels_list +['chargeOriginal_atEdge'])
                     .reset_index(drop=True))
-            df = df.loc[df['original_atEdge'] == False]
+            df = df.loc[df['chargeOriginal_atEdge'] < 50]
         else:
             df = (pd.read_parquet(afile, 
                                  columns=recon_cols + labels_list)
