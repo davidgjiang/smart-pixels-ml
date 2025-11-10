@@ -16,7 +16,6 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_compl
 from tqdm import tqdm
 import tensorflow as tf
 from qkeras import quantized_bits
-
 from . import utils
 
 # custom quantizer
