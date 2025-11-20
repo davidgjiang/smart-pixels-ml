@@ -29,6 +29,7 @@ def preselection_processing(input_directory, output_directory, file_type='parque
 
 if __name__ == '__main__':
     print('*** Preselection Processor ***')
+    '''
     preselection_processing(input_directory='/data/dajiang/smart-pixels/largerWindowPreliminary/dataset_3sr_16x16_50x12P5_centeredIncidence_parquets/test/', 
                             output_directory='/data/dajiang/smart-pixels/largerWindowPreliminary/dataset_3sr_16x16_50x12P5_centeredIncidence_parquets/test_contained/')
     preselection_processing(input_directory='/data/dajiang/smart-pixels/largerWindowPreliminary/dataset_3sr_16x16_50x12P5_centeredIncidence_parquets/train/', 
@@ -37,3 +38,9 @@ if __name__ == '__main__':
     preselection_processing(input_directory='/data/dajiang/smart-pixels/largerWindowPreliminary/dataset_2s_16x16_50x12P5_centeredIncidence_parquets/test/', 
                             output_directory='/data/dajiang/smart-pixels/largerWindowPreliminary/dataset_2s_16x16_50x12P5_centeredIncidence_parquets/test_contained/')
     print('Processing done for 2s.')
+    '''
+    preselection_processing(input_directory='/data/dajiang/smart-pixels/largerWindowPreliminary/dataset_3sr_16x16_50x12P5_centeredIncidence_-8_8_offsets_parquets/test/', 
+                            output_directory='/data/dajiang/smart-pixels/largerWindowPreliminary/dataset_3sr_16x16_50x12P5_centeredIncidence_-8_8_offsets_parquets/test_contained/')
+    preselection_processing(input_directory='/data/dajiang/smart-pixels/largerWindowPreliminary/dataset_3sr_16x16_50x12P5_centeredIncidence_-8_8_offsets_parquets/train/', 
+                            output_directory='/data/dajiang/smart-pixels/largerWindowPreliminary/dataset_3sr_16x16_50x12P5_centeredIncidence_-8_8_offsets_parquets/train_contained/')
+    print('Processing done for 3sr offsets.')
