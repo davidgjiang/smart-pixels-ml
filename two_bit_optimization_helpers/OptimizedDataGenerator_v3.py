@@ -1,4 +1,3 @@
-# OptimizedDataGenerator_v2.py
 import os
 import gc
 import math
@@ -18,8 +17,6 @@ import tensorflow as tf
 from qkeras import quantized_bits
 from utils import *
 
-# custom quantizer
-
 # @tf.function
 def QKeras_data_prep_quantizer(data, bits=4, int_bits=0, alpha=1):
     """
@@ -35,6 +32,26 @@ def QKeras_data_prep_quantizer(data, bits=4, int_bits=0, alpha=1):
     quantizer = quantized_bits(bits, int_bits, alpha=alpha)
     return quantizer(data)
 
+# Custom tensorflow bucketize function
+def tf_bucketize(x, boundaries, side='right'):
+    """
+    TensorFlow equivalent of tf.bucketize.
+    
+    Args:
+        x: tf.Tensor of any shape
+        boundaries: 1D tf.Tensor or list of boundaries
+        side: 'left' or 'right' (like np.searchsorted)
+    
+    Returns:
+        tf.Tensor of same shape as x with integer bucket indices
+    """
+    boundaries = tf.constant(boundaries, dtype=x.dtype)
+    original_shape = tf.shape(x)
+    x_flat = tf.reshape(x, [-1])
+    bucket_indices = tf.searchsorted(boundaries, x_flat, side=side)
+    bucket_indices = tf.clip_by_value(bucket_indices, 0, tf.size(boundaries))
+    return tf.reshape(bucket_indices, original_shape)
+
 
 class OptimizedDataGenerator(tf.keras.utils.Sequence):
     def __init__(self, 
@@ -44,7 +61,7 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
             file_count = None,
             labels_list: Union[List,str] = ['x-midplane','y-midplane','cotAlpha','cotBeta'],
             to_standardize: bool = False,
-            log_compression: bool = True,
+            log_compression: bool = False,
             input_shape: Tuple = (13,21),
             transpose = None,
             files_from_end = False,
@@ -57,9 +74,10 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
             select_contained = False, #If true, selects only clusters with chargeOriginal_atEdge<50
             noise = -1, #add gaussian noise (mu, sigma), set to -1 to turn off
             seed: int = None,
-            min_threshold: float = None, #Zeros out charge<min_thresh
-            max_threshold: float = None, #Sets charge>max_thresh to max_thresh
             quantize: bool = False,
+            digitize: bool = False, # for the manual 2bit mapping
+            digitize_levels: Union[List[float], np.ndarray] = None,
+            digitize_thresholds: Union[List[float], np.ndarray] = None,
             max_workers: int = 1,
             label_scale_pctl: float = 99,
             norm_pos_pctl: float = 99.7,
@@ -116,13 +134,7 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
             self.transpose = transpose
             self.to_standardize = to_standardize
             self.log_compression = log_compression
-            self.noise = noise
             self.select_contained = select_contained
-            self.min_threshold = min_threshold
-            self.max_threshold = max_threshold
-            if (max_threshold is not None) and (min_threshold is not None) and (max_threshold < min_threshold):
-                raise ValueError("max_threshold < min_threshold!")
-
             self.process_file_parallel()
             
             
@@ -173,6 +185,25 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
             
         self.tfrecord_filenames = np.sort(np.array(tf.io.gfile.glob(os.path.join(self.tfrecords_dir, "*.tfrecord"))))
         self.quantize = quantize
+        self.noise = noise
+
+        # manual 2-bit digitization (FOR LOADING TFRecords ONLY!)
+        self.digitize = digitize
+        self.digitize_levels = digitize_levels
+        self.digitize_thresholds = digitize_thresholds
+        self.digitize_levels = np.array(digitize_levels if digitize_levels is not None 
+                                        else [0.0, 1.0, 2.0, 3.0], dtype=np.float32)
+        self.digitize_thresholds = np.array(digitize_thresholds if digitize_thresholds is not None
+                                            else [400, 1000, 2000], dtype=np.float32)
+        
+        # Ensure that if digitize is True, we must load from TFRecords
+        assert not (self.digitize and load_from_tfrecords_dir is None), \
+            "digitize=True requires load_from_tfrecords_dir to be specified"
+
+        # boundaries length = levels-1
+        assert len(self.digitize_thresholds) == len(self.digitize_levels)-1, \
+            "Number of boundaries must be one less than number of levels"
+
         self.epoch_count = 0
         self.on_epoch_end()
 
@@ -192,11 +223,7 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
             "log_compression": self.log_compression,
             "transpose": self.transpose,
             "shuffle": self.shuffle,
-            "noise": self.noise,
             "select_contained": self.select_contained,
-            "min_threshold": self.min_threshold,
-            "max_threshold": self.max_threshold,
-            
             "seed": self.seed,
             "label_scale_pctl": self.label_scale_pctl,
             "norm_pos_pctl": self.norm_pos_pctl,
@@ -264,9 +291,6 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
         self.shuffle = metadata.get('shuffle', False)
         self.seed = metadata.get('seed', 13)
         self.transpose = metadata.get('transpose', None)
-        self.noise = metadata.get('noise', -1)
-        self.min_threshold = metadata.get('min_threshold', None)
-        self.max_threshold = metadata.get('max_threshold', None)
 
         if self.shuffle:
             self.rng = np.random.default_rng(seed=self.seed)
@@ -274,7 +298,7 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
 
     def process_file_parallel(self):
         file_infos = [(afile, 
-                    self.recon_cols, self.labels_list, self.noise, self.min_threshold, self.max_threshold, self.select_contained, 
+                    self.recon_cols, self.labels_list, self.select_contained, 
                     self.log_compression, self.label_scale_pctl, self.norm_pos_pctl, self.norm_neg_pctl, self.labels_scale) 
                     for afile in self.files
                     ]
@@ -319,7 +343,7 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
 
     @staticmethod
     def _process_file_single(file_info):
-        afile, recon_cols, labels_list, noise, min_threshold, max_threshold, select_contained, log_compression, label_scale_pctl, norm_pos_pctl, norm_neg_pctl, custom_labels_scale = file_info
+        afile, recon_cols, labels_list, select_contained, log_compression, label_scale_pctl, norm_pos_pctl, norm_neg_pctl, custom_labels_scale = file_info
         if select_contained:
             df = (pd.read_parquet(afile, 
                                  columns=recon_cols + labels_list +['chargeOriginal_atEdge'])
@@ -331,16 +355,6 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
                     .reset_index(drop=True))
         # df = pd.read_parquet(afile, columns=recon_cols + labels_list).reset_index(drop=True)
         x = df[recon_cols].values
-        
-        if noise != -1:
-            bkg = np.random.normal(*noise, x.shape)
-            x = x+bkg
-        if min_threshold is not None:
-            bellowthresh = x < min_threshold
-            x[bellowthresh] = 0
-        if max_threshold is not None:
-            abovethresh = x > max_threshold
-            x[abovethresh] = max_threshold
             
         manual_labels_scale = False
         if custom_labels_scale is not None:
@@ -562,16 +576,6 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
                 labels_df = df[self.labels_list]
 
                 recon_values = recon_df.values
-                if self.noise !=-1:
-                    bkg = np.random.normal(*self.noise, recon_values.shape)
-                    recon_values = recon_values + bkg
-                if self.min_threshold is not None: 
-                    bellowthresh = recon_values < self.min_threshold
-                    recon_values[bellowthresh] = 0 
-                if self.max_threshold is not None: 
-                    abovethresh = recon_values > self.max_threshold
-                    recon_values[abovethresh] = self.max_threshold 
-                
                 nonzeros = abs(recon_values) > 0
                 if self.log_compression:
                     recon_values[nonzeros] = np.sign(recon_values[nonzeros]) * np.log1p(abs(recon_values[nonzeros])) / np.log(2)
@@ -640,6 +644,23 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
             value = value.numpy()
         return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
+    def map_to_levels(self, x: tf.Tensor) -> tf.Tensor:
+        """
+        Maps input tensor x to discrete levels using specified charge thresholds and output levels.
+        """
+        boundaries = tf.constant(self.digitize_thresholds, dtype=tf.float32)
+        levels = tf.constant(self.digitize_levels, dtype=tf.float32)
+    
+        # Use the custom bucketize
+        bucket_indices = tf_bucketize(x, boundaries, side='right')
+    
+        # Clip to valid level indices
+        bucket_indices = tf.clip_by_value(bucket_indices, 0, len(self.digitize_levels) - 1)
+    
+        # Map indices to levels
+        x_quant = tf.gather(levels, bucket_indices)
+        return x_quant
+
     def __getitem__(self, batch_index):
         """
         Load the batch from a pre-saved TFRecord file instead of processing raw data.
@@ -661,8 +682,16 @@ class OptimizedDataGenerator(tf.keras.utils.Sequence):
         X_batch = tf.reshape(X_batch, [-1, *X_batch.shape[1:]])
         y_batch = tf.reshape(y_batch, [-1, *y_batch.shape[1:]])
 
+        if self.noise != -1: # add noise first before quantization/digitization
+            mu, sigma = self.noise
+            noise_array = np.random.normal(loc=mu, scale=sigma, size=X_batch.shape)
+            X_batch = X_batch + noise_array
+
         if self.quantize:
             X_batch = QKeras_data_prep_quantizer(X_batch, bits=4, int_bits=0, alpha=1)
+        
+        if self.digitize:
+            X_batch = self.map_to_levels(X_batch)
 
         if self.shuffle:
             indices = tf.range(start=0, limit=tf.shape(X_batch)[0], dtype=tf.int32)

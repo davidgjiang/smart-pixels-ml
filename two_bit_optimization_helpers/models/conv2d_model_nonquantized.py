@@ -75,6 +75,19 @@ def Conv2D_Full(shape, n_filters, pool_size):
     model = Model(inputs=x_in, outputs=stack)
     return model
 
+def Conv2D_Slim(shape, n_filters, pool_size):
+    x_base = x_in = Input(shape)
+    stack = _conv_network(x_base)
+    stack = AveragePooling2D(
+        pool_size=(pool_size, pool_size),
+        strides=None,
+        padding="valid",
+        data_format=None,
+    )(stack)
+    stack = _var_network(stack, hidden=16, output=3)
+    model = Model(inputs=x_in, outputs=stack)
+    return model
+
 def Conv2D_Max_SoftQuantizer(shape, n_filters, pool_size, initial_thresholds, threshold_offset, initial_levels=None, trainable_thresholds=True):
     x_base = x_in = Input(shape)
     x_base = SoftQuantizeLayer(
@@ -120,5 +133,29 @@ def Conv2D_Full_SoftQuantizer(shape, n_filters, pool_size, initial_thresholds, t
         data_format=None,        
     )(stack)
     stack = _var_network(stack, hidden=16, output=8)
+    model = Model(inputs=x_in, outputs=stack)
+    return model
+
+def Conv2D_Slim_SoftQuantizer(shape, n_filters, pool_size, initial_thresholds, threshold_offset, initial_levels=None, trainable_thresholds=True):
+    x_base = x_in = Input(shape)
+    x_base = SoftQuantizeLayer(
+        n_bits=2,                     
+        initial_thresholds=initial_thresholds,
+        threshold_offset=threshold_offset,
+        initial_levels=initial_levels,
+        trainable_levels=False,
+        trainable_thresholds=trainable_thresholds,
+        initial_k=1.0,                
+        trainable_k=True,             
+        name='soft_quantizer_output'  
+    )(x_base)
+    stack = _conv_network(x_base)
+    stack = AveragePooling2D(
+        pool_size=(pool_size, pool_size), 
+        strides=None, 
+        padding="valid", 
+        data_format=None,        
+    )(stack)
+    stack = _var_network(stack, hidden=16, output=3)
     model = Model(inputs=x_in, outputs=stack)
     return model

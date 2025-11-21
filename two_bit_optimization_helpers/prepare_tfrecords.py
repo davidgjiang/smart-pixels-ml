@@ -1,6 +1,5 @@
-
 import os
-from OptimizedDataGenerator_v2p5 import *
+from OptimizedDataGenerator_v3 import *
 
 def generate_tfrecords(
     dataset_dir, 
@@ -9,10 +8,6 @@ def generate_tfrecords(
     to_standardize=False, 
     log_compression=False, 
     select_contained=False, 
-    two_bit_optimized=False, 
-    noise=-1, 
-    min_threshold=None, 
-    max_threshold=None, 
     timeslices=2, 
     labels_list=['x-midplane','y-midplane','cotAlpha','cotBeta'],
     seed=10, 
@@ -20,7 +15,12 @@ def generate_tfrecords(
     tfrecords_exist=False, 
     model_type=None
 ):
-    
+    # determine labels_list
+    if 'Slim' in model_type:
+        labels_list=['x-midplane','y-midplane','cotBeta']
+    else:
+        labels_list=['x-midplane','y-midplane','cotAlpha','cotBeta']
+        
     # determine the time stamps to use
     if timeslices==2:
         time_stamps = [0,19]
@@ -32,24 +32,15 @@ def generate_tfrecords(
     if select_contained:
         contained_label='_contained'
         select_contained=True
-    two_bit_optimized_label=''
-    if two_bit_optimized:
-        two_bit_optimized_label=f'_{model_type}_2bit_optimized'
     
     # determine input directories of parquets and output directories of tfrecords
-    dataset_train_dir = os.path.join(dataset_dir, f"train{contained_label}{two_bit_optimized_label}")
-    dataset_validation_dir = os.path.join(dataset_dir, f"test{contained_label}{two_bit_optimized_label}")
+    dataset_train_dir = os.path.join(dataset_dir, f"train{contained_label}")
+    dataset_validation_dir = os.path.join(dataset_dir, f"test{contained_label}")
 
     tfrecords_dir = os.path.join(dataset_dir, "TFR_files", f"{timeslices}t")
-    if noise == -1:
-        tfrecords_dir_train = os.path.join(tfrecords_dir, f"TFR_train{contained_label}{two_bit_optimized_label}")
-        tfrecords_dir_val   = os.path.join(tfrecords_dir, f"TFR_val{contained_label}{two_bit_optimized_label}")
-    elif noise == [0,80]:
-        tfrecords_dir_train = os.path.join(tfrecords_dir, f"TFR_train{contained_label}_noise-80e{two_bit_optimized_label}")
-        tfrecords_dir_val   = os.path.join(tfrecords_dir, f"TFR_val{contained_label}_noise-80e{two_bit_optimized_label}")
-    else:
-        print('Invalid argument for noise. Either noise=-1 or noise=[0,80]')
-        return 0
+    tfrecords_dir_train = os.path.join(tfrecords_dir, f"TFR_train{contained_label}")
+    tfrecords_dir_val   = os.path.join(tfrecords_dir, f"TFR_val{contained_label}")
+
 
     dirs_to_create = [
     tfrecords_dir_train,
@@ -68,11 +59,8 @@ def generate_tfrecords(
             to_standardize = to_standardize, 
             log_compression = log_compression, 
             select_contained = select_contained,
-            noise = noise,
-            min_threshold = min_threshold,
-            max_threshold = max_threshold,
             include_y_local= False,
-            labels_list = ['x-midplane','y-midplane','cotAlpha','cotBeta'],
+            labels_list = labels_list,
             input_shape = (timeslices,16,16),
             transpose = (0,2,3,1),
             shuffle = False,
@@ -93,11 +81,8 @@ def generate_tfrecords(
             to_standardize = to_standardize,
             log_compression = log_compression,
             select_contained = select_contained,
-            noise = noise,
-            min_threshold = min_threshold,
-            max_threshold = max_threshold,
             include_y_local= False,
-            labels_list = ['x-midplane','y-midplane','cotAlpha','cotBeta'],
+            labels_list = labels_list,
             input_shape = (timeslices,16,16),
             transpose = (0,2,3,1),
             shuffle = False, 
@@ -120,11 +105,8 @@ def generate_tfrecords(
             to_standardize = to_standardize, 
             log_compression = log_compression, 
             select_contained = select_contained,
-            noise = noise,
-            min_threshold = min_threshold,
-            max_threshold = max_threshold,
             include_y_local= False,
-            labels_list = ['x-midplane','y-midplane','cotAlpha','cotBeta'],
+            labels_list = labels_list,
             input_shape = (timeslices,16,16),
             transpose = (0,2,3,1),
             shuffle = False,
@@ -144,11 +126,8 @@ def generate_tfrecords(
             to_standardize = to_standardize,
             log_compression = log_compression,
             select_contained = select_contained,
-            noise = noise,
-            min_threshold = min_threshold,
-            max_threshold = max_threshold,
             include_y_local= False,
-            labels_list = ['x-midplane','y-midplane','cotAlpha','cotBeta'],
+            labels_list = labels_list,
             input_shape = (timeslices,16,16),
             transpose = (0,2,3,1),
             shuffle = False, 
@@ -162,19 +141,37 @@ def generate_tfrecords(
 
     return dataset_train_dir, dataset_validation_dir, tfrecords_dir_train, tfrecords_dir_val
 
-def load_tfrecords(tfrecords_dir_train, tfrecords_dir_val, seed=10, quantize=False, shuffle=True):
+def load_tfrecords(
+    tfrecords_dir_train, 
+    tfrecords_dir_val, 
+    seed=10,
+    noise=-1, 
+    quantize=False, 
+    shuffle=True,
+    digitize=False,
+    digitize_levels=None,
+    digitize_thresholds=None,
+):
     training_generator = OptimizedDataGenerator(
     load_from_tfrecords_dir = tfrecords_dir_train,
     shuffle = shuffle,
     seed = seed,
-    quantize = quantize
+    noise=noise,
+    quantize = quantize,
+    digitize=digitize,
+    digitize_levels=digitize_levels,
+    digitize_thresholds=digitize_thresholds,
     )
 
     validation_generator = OptimizedDataGenerator(
         load_from_tfrecords_dir = tfrecords_dir_val,
         shuffle = shuffle,
         seed = seed,
-        quantize = quantize
+        noise=noise,
+        quantize = quantize,
+        digitize=digitize,
+        digitize_levels=digitize_levels,
+        digitize_thresholds=digitize_thresholds,
     )
 
     return training_generator, validation_generator

@@ -4,7 +4,7 @@ from qkeras import QDense, QActivation, QConv2D, QSeparableConv2D, quantized_bit
 import tensorflow as tf
 from SoftQuantizeLayer import SoftQuantizeLayer
 
-def var_network(var, hidden=10, output=2):
+def _var_network(var, hidden=10, output=2):
     var = Flatten()(var)
     
     # First QDense layer
@@ -35,7 +35,7 @@ def var_network(var, hidden=10, output=2):
         kernel_regularizer=tf.keras.regularizers.L1L2(0.01),
     )(var)
 
-def conv_network(var, n_filters=5, kernel_size=3):
+def _conv_network(var, n_filters=5, kernel_size=3):
     var = QSeparableConv2D(
         n_filters,kernel_size,
         depthwise_quantizer=quantized_bits(4, 0, 1, alpha=1),
@@ -56,9 +56,9 @@ def conv_network(var, n_filters=5, kernel_size=3):
     var = QActivation("quantized_tanh(4, 0, 1)")(var)    
     return var
      
-def CreateModel_Max(shape, n_filters, pool_size):
+def QConv2D_Max(shape, n_filters, pool_size):
     x_base = x_in = Input(shape)
-    stack = conv_network(x_base)
+    stack = _conv_network(x_base)
     stack = AveragePooling2D(
         pool_size=(pool_size, pool_size), 
         strides=None, 
@@ -66,13 +66,13 @@ def CreateModel_Max(shape, n_filters, pool_size):
         data_format=None,        
     )(stack)
     stack = QActivation("quantized_bits(8, 0, alpha=1)")(stack)
-    stack = var_network(stack, hidden=16, output=14)
+    stack = _var_network(stack, hidden=16, output=14)
     model = Model(inputs=x_in, outputs=stack)
     return model
 
-def CreateModel_Full(shape, n_filters, pool_size):
+def QConv2D_Full(shape, n_filters, pool_size):
     x_base = x_in = Input(shape)
-    stack = conv_network(x_base)
+    stack = _conv_network(x_base)
     stack = AveragePooling2D(
         pool_size=(pool_size, pool_size), 
         strides=None, 
@@ -80,24 +80,38 @@ def CreateModel_Full(shape, n_filters, pool_size):
         data_format=None,        
     )(stack)
     stack = QActivation("quantized_bits(8, 0, alpha=1)")(stack)
-    stack = var_network(stack, hidden=16, output=8)
+    stack = _var_network(stack, hidden=16, output=8)
     model = Model(inputs=x_in, outputs=stack)
     return model
 
-def CreateModel_Max_SoftQuantizer(shape, n_filters, pool_size, initial_thresholds, threshold_offset, initial_levels=None):
+def QConv2D_Slim(shape, n_filters, pool_size):
+    x_base = x_in = Input(shape)
+    stack = _conv_network(x_base)
+    stack = AveragePooling2D(
+        pool_size=(pool_size, pool_size), 
+        strides=None, 
+        padding="valid", 
+        data_format=None,        
+    )(stack)
+    stack = QActivation("quantized_bits(8, 0, alpha=1)")(stack)
+    stack = _var_network(stack, hidden=16, output=3)
+    model = Model(inputs=x_in, outputs=stack)
+    return model
+
+def QConv2D_Max_SoftQuantizer(shape, n_filters, pool_size, initial_thresholds, threshold_offset, initial_levels=None, trainable_thresholds=True):
     x_base = x_in = Input(shape)
     x_base = SoftQuantizeLayer(
         n_bits=2,                     
         initial_thresholds=initial_thresholds,
+        threshold_offset=threshold_offset,
         initial_levels=initial_levels,
-        threshold_offset=threshold_offset,    
         trainable_levels=False,
-        trainable_threshold=True,
+        trainable_thresholds=trainable_thresholds,
         initial_k=1.0,                
         trainable_k=True,             
         name='soft_quantizer_output'  
     )(x_base)
-    stack = conv_network(x_base)
+    stack = _conv_network(x_base)
     stack = AveragePooling2D(
         pool_size=(pool_size, pool_size), 
         strides=None, 
@@ -105,24 +119,24 @@ def CreateModel_Max_SoftQuantizer(shape, n_filters, pool_size, initial_threshold
         data_format=None,        
     )(stack)
     stack = QActivation("quantized_bits(8, 0, alpha=1)")(stack)
-    stack = var_network(stack, hidden=16, output=14)
+    stack = _var_network(stack, hidden=16, output=14)
     model = Model(inputs=x_in, outputs=stack)
     return model
     
-def CreateModel_Full_SoftQuantizer(shape, n_filters, pool_size, initial_thresholds, threshold_offset, initial_levels=None):
+def QConv2D_Full_SoftQuantizer(shape, n_filters, pool_size, initial_thresholds, threshold_offset, initial_levels=None, trainable_thresholds=True):
     x_base = x_in = Input(shape)
     x_base = SoftQuantizeLayer(
         n_bits=2,                     
         initial_thresholds=initial_thresholds,
-        initial_levels=initial_levels,
         threshold_offset=threshold_offset,
+        initial_levels=initial_levels,
         trainable_levels=False,
-        trainable_thresholds=True,
+        trainable_thresholds=trainable_thresholds,
         initial_k=1.0,                
         trainable_k=True,             
         name='soft_quantizer_output'  
     )(x_base)
-    stack = conv_network(x_base)
+    stack = _conv_network(x_base)
     stack = AveragePooling2D(
         pool_size=(pool_size, pool_size), 
         strides=None, 
@@ -130,6 +144,31 @@ def CreateModel_Full_SoftQuantizer(shape, n_filters, pool_size, initial_threshol
         data_format=None,        
     )(stack)
     stack = QActivation("quantized_bits(8, 0, alpha=1)")(stack)
-    stack = var_network(stack, hidden=16, output=8)
+    stack = _var_network(stack, hidden=16, output=8)
+    model = Model(inputs=x_in, outputs=stack)
+    return model
+
+def QConv2D_Slim_SoftQuantizer(shape, n_filters, pool_size, initial_thresholds, threshold_offset, initial_levels=None, trainable_thresholds=True):
+    x_base = x_in = Input(shape)
+    x_base = SoftQuantizeLayer(
+        n_bits=2,                     
+        initial_thresholds=initial_thresholds,
+        threshold_offset=threshold_offset,
+        initial_levels=initial_levels,
+        trainable_levels=False,
+        trainable_thresholds=trainable_thresholds,
+        initial_k=1.0,                
+        trainable_k=True,             
+        name='soft_quantizer_output'  
+    )(x_base)
+    stack = _conv_network(x_base)
+    stack = AveragePooling2D(
+        pool_size=(pool_size, pool_size), 
+        strides=None, 
+        padding="valid", 
+        data_format=None,        
+    )(stack)
+    stack = QActivation("quantized_bits(8, 0, alpha=1)")(stack)
+    stack = _var_network(stack, hidden=16, output=3)
     model = Model(inputs=x_in, outputs=stack)
     return model
