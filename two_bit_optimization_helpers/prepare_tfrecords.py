@@ -23,9 +23,9 @@ def generate_tfrecords(
         
     # determine the time stamps to use
     if timeslices==2:
-        time_stamps = [0,19]
+        time_stamps=[0,19]
     elif timeslices==20:
-        time_stamps = -1
+        time_stamps=-1
     
     # determine selections
     contained_label=''
@@ -34,15 +34,15 @@ def generate_tfrecords(
         select_contained=True
     
     # determine input directories of parquets and output directories of tfrecords
-    dataset_train_dir = os.path.join(dataset_dir, f"train{contained_label}")
-    dataset_validation_dir = os.path.join(dataset_dir, f"test{contained_label}")
+    dataset_train_dir=os.path.join(dataset_dir, f"train{contained_label}")
+    dataset_validation_dir=os.path.join(dataset_dir, f"test{contained_label}")
 
-    tfrecords_dir = os.path.join(dataset_dir, "TFR_files", f"{timeslices}t")
-    tfrecords_dir_train = os.path.join(tfrecords_dir, f"TFR_train{contained_label}")
-    tfrecords_dir_val   = os.path.join(tfrecords_dir, f"TFR_val{contained_label}")
+    tfrecords_dir=os.path.join(dataset_dir, "TFR_files", f"{timeslices}t")
+    tfrecords_dir_train=os.path.join(tfrecords_dir, f"TFR_train{contained_label}")
+    tfrecords_dir_val  =os.path.join(tfrecords_dir, f"TFR_val{contained_label}")
 
 
-    dirs_to_create = [
+    dirs_to_create=[
     tfrecords_dir_train,
     tfrecords_dir_val,
     ]
@@ -50,93 +50,93 @@ def generate_tfrecords(
         os.makedirs(directory, exist_ok=True)
 
     if tfrecords_exist:
-        training_generator = OptimizedDataGenerator(
-            dataset_base_dir = dataset_train_dir,
-            file_type = "parquet",
-            data_format = "3D",
-            batch_size = train_batch_size,
-            file_count = len(os.listdir(dataset_train_dir)),
-            to_standardize = to_standardize, 
-            log_compression = log_compression, 
-            select_contained = select_contained,
+        training_generator=OptimizedDataGenerator(
+            dataset_base_dir=dataset_train_dir,
+            file_type="parquet",
+            data_format="3D",
+            batch_size=train_batch_size,
+            file_count=len(os.listdir(dataset_train_dir)),
+            to_standardize=to_standardize, 
+            log_compression=log_compression, 
+            select_contained=select_contained,
             include_y_local= False,
-            labels_list = labels_list,
-            input_shape = (timeslices,16,16),
-            transpose = (0,2,3,1),
-            shuffle = False,
+            labels_list=labels_list,
+            input_shape=(timeslices,16,16),
+            transpose=(0,2,3,1),
+            shuffle=False,
             seed=seed,  
 
-            tfrecords_dir = tfrecords_dir_train,
-            use_time_stamps = time_stamps,
-            max_workers = max_workers,
-            load_from_tfrecords_dir = tfrecords_dir_train
+            tfrecords_dir=tfrecords_dir_train,
+            use_time_stamps=time_stamps,
+            max_workers=max_workers,
+            load_from_tfrecords_dir=tfrecords_dir_train
         )
 
-        validation_generator = OptimizedDataGenerator(
-            dataset_base_dir = dataset_validation_dir,
-            file_type = "parquet",
-            data_format = "3D",
-            batch_size = val_batch_size,
-            file_count = len(os.listdir(dataset_validation_dir)),
-            to_standardize = to_standardize,
-            log_compression = log_compression,
-            select_contained = select_contained,
+        validation_generator=OptimizedDataGenerator(
+            dataset_base_dir=dataset_validation_dir,
+            file_type="parquet",
+            data_format="3D",
+            batch_size=val_batch_size,
+            file_count=len(os.listdir(dataset_validation_dir)),
+            to_standardize=to_standardize,
+            log_compression=log_compression,
+            select_contained=select_contained,
             include_y_local= False,
-            labels_list = labels_list,
-            input_shape = (timeslices,16,16),
-            transpose = (0,2,3,1),
-            shuffle = False, 
-            files_from_end = True,
+            labels_list=labels_list,
+            input_shape=(timeslices,16,16),
+            transpose=(0,2,3,1),
+            shuffle=False, 
+            files_from_end=True,
             seed=seed,
 
-            tfrecords_dir = tfrecords_dir_val,
-            use_time_stamps = time_stamps,
-            max_workers = max_workers,
-            load_from_tfrecords_dir = tfrecords_dir_val
+            tfrecords_dir=tfrecords_dir_val,
+            use_time_stamps=time_stamps,
+            max_workers=max_workers,
+            load_from_tfrecords_dir=tfrecords_dir_val
         )
     
     else:
-        training_generator = OptimizedDataGenerator(
-            dataset_base_dir = dataset_train_dir,
-            file_type = "parquet",
-            data_format = "3D",
-            batch_size = train_batch_size,
-            file_count = len(os.listdir(dataset_train_dir)),
-            to_standardize = to_standardize, 
-            log_compression = log_compression, 
-            select_contained = select_contained,
+        training_generator=OptimizedDataGenerator(
+            dataset_base_dir=dataset_train_dir,
+            file_type="parquet",
+            data_format="3D",
+            batch_size=train_batch_size,
+            file_count=len(os.listdir(dataset_train_dir)),
+            to_standardize=to_standardize, 
+            log_compression=log_compression, 
+            select_contained=select_contained,
             include_y_local= False,
-            labels_list = labels_list,
-            input_shape = (timeslices,16,16),
-            transpose = (0,2,3,1),
-            shuffle = False,
+            labels_list=labels_list,
+            input_shape=(timeslices,16,16),
+            transpose=(0,2,3,1),
+            shuffle=False,
             seed=seed,  
 
-            tfrecords_dir = tfrecords_dir_train,
-            use_time_stamps = time_stamps,
-            max_workers = max_workers,
+            tfrecords_dir=tfrecords_dir_train,
+            use_time_stamps=time_stamps,
+            max_workers=max_workers,
         )
         
-        validation_generator = OptimizedDataGenerator(
-            dataset_base_dir = dataset_validation_dir,
-            file_type = "parquet",
-            data_format = "3D",
-            batch_size = val_batch_size,
-            file_count = len(os.listdir(dataset_validation_dir)),
-            to_standardize = to_standardize,
-            log_compression = log_compression,
-            select_contained = select_contained,
+        validation_generator=OptimizedDataGenerator(
+            dataset_base_dir=dataset_validation_dir,
+            file_type="parquet",
+            data_format="3D",
+            batch_size=val_batch_size,
+            file_count=len(os.listdir(dataset_validation_dir)),
+            to_standardize=to_standardize,
+            log_compression=log_compression,
+            select_contained=select_contained,
             include_y_local= False,
-            labels_list = labels_list,
-            input_shape = (timeslices,16,16),
-            transpose = (0,2,3,1),
-            shuffle = False, 
-            files_from_end = True,
+            labels_list=labels_list,
+            input_shape=(timeslices,16,16),
+            transpose=(0,2,3,1),
+            shuffle=False, 
+            files_from_end=True,
             seed=seed,
-
-            tfrecords_dir = tfrecords_dir_val,
-            use_time_stamps = time_stamps,
-            max_workers = max_workers,
+            
+            tfrecords_dir=tfrecords_dir_val,
+            use_time_stamps=time_stamps,
+            max_workers=max_workers,
         ) 
 
     return dataset_train_dir, dataset_validation_dir, tfrecords_dir_train, tfrecords_dir_val
@@ -152,23 +152,23 @@ def load_tfrecords(
     digitize_levels=None,
     digitize_thresholds=None,
 ):
-    training_generator = OptimizedDataGenerator(
-    load_from_tfrecords_dir = tfrecords_dir_train,
-    shuffle = shuffle,
-    seed = seed,
-    noise=noise,
-    quantize = quantize,
-    digitize=digitize,
-    digitize_levels=digitize_levels,
-    digitize_thresholds=digitize_thresholds,
+    training_generator=OptimizedDataGenerator(
+        load_from_tfrecords_dir=tfrecords_dir_train,
+        shuffle=shuffle,
+        seed=seed,
+        noise=noise,
+        quantize=quantize,
+        digitize=digitize,
+        digitize_levels=digitize_levels,
+        digitize_thresholds=digitize_thresholds,
     )
 
-    validation_generator = OptimizedDataGenerator(
-        load_from_tfrecords_dir = tfrecords_dir_val,
-        shuffle = shuffle,
-        seed = seed,
+    validation_generator=OptimizedDataGenerator(
+        load_from_tfrecords_dir=tfrecords_dir_val,
+        shuffle=shuffle,
+        seed=seed,
         noise=noise,
-        quantize = quantize,
+        quantize=quantize,
         digitize=digitize,
         digitize_levels=digitize_levels,
         digitize_thresholds=digitize_thresholds,

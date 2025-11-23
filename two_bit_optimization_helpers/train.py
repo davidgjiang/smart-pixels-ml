@@ -1,9 +1,12 @@
 import tensorflow as tf
 import numpy as np
+import pandas as pd
 import random
 import os
 import shutil
 import gc
+from natsort import natsorted
+from tqdm import tqdm
 from AnnealingScheduler import *
 from loss import (
     custom_loss,
@@ -113,8 +116,6 @@ def create_model(
         else: 
             return model_list[model_type][0]((16, 16, timeslices))
 
-    
-
 def train(
     model,
     model_type, 
@@ -123,11 +124,9 @@ def train(
     validation_generator, 
     timeslices=2,
     train_type=None, # full_precision, soft_quantize_layer, 2bit_optimized
-    epochs=5,
+    epochs=1,
     seed=10, 
     verbose=1):
-
-    random.seed(seed)
 
     if 'Max' in model_type:
         loss=custom_loss
@@ -195,16 +194,16 @@ def train(
             verbose=verbose
         )
     
-    return weights_directory
+    return weights_directory, fingerprint
     
-def get_thresholds(
+def get_best_thresholds(
     checkpoints,
     dataset_train_dir,
     dataset_validation_dir, 
     model_type,
     timeslices=2,
     initial_thresholds=[400, 1000, 2000],
-    threshold_offset=0.0,
+    threshold_offset=80.0,
     initial_levels=np.array([0.0, 1.0, 2.0, 3.0], dtype=np.float32)
     ):
 
@@ -269,3 +268,131 @@ def cleanup_models_and_generators(objects: list):
     gc.collect()
     
     print('Cleanup complete: models, generators, and GPU memory freed.')
+
+def get_all_losses(input_dir):
+    checkpoints = natsorted(os.listdir(input_dir))
+    train_losses = np.array([float(f.split('-t')[-1].split('-v')[0]) for f in checkpoints])
+    validation_losses = np.array([float(f.split('-v')[-1].split('.hdf5')[0]) for f in checkpoints])
+
+    return train_losses, validation_losses
+
+def get_all_thresholds(
+    input_dir, 
+    model_type, 
+    initial_thresholds=[400, 1000, 2000], 
+    initial_levels=np.array([0,1,2,3]), 
+    threshold_offset=80.0, 
+    timeslices=2
+): 
+    checkpoints = natsorted(os.listdir(input_dir))
+    thresholds_1 = []
+    thresholds_2 = []
+    thresholds_3 = []
+    
+    model = create_model(
+        model_type=model_type,
+        timeslices=timeslices,
+        soft_quantize_layer=True,
+        initial_thresholds=initial_thresholds,
+        threshold_offset=threshold_offset,
+        initial_levels=initial_levels,
+    )
+            
+    for i in tqdm(range(len(checkpoints))):
+        model.load_weights(f'{input_dir}/{checkpoints[i]}', by_name=True, skip_mismatch=True)
+        sq_layer = model.get_layer(name='soft_quantizer_output')
+        thresholds_1.append(sq_layer.thresholds.numpy()[0])
+        thresholds_2.append(sq_layer.thresholds.numpy()[1])
+        thresholds_3.append(sq_layer.thresholds.numpy()[2])
+        
+    return thresholds_1, thresholds_2, thresholds_3
+
+def save_performance_parquet(
+    checkpoints,
+    output_directory,
+    test_generator, 
+    model_type,
+    train_type,
+    fingerprint,
+    timeslices=2,
+    soft_quantize_layer=False,
+    initial_thresholds=[400, 1000, 2000],
+    threshold_offset=80.0,
+    initial_levels=np.array([0.0, 1.0, 2.0, 3.0], dtype=np.float32),
+):
+
+    # -------- Create model --------
+    model = create_model(
+        model_type=model_type,
+        timeslices=timeslices,
+        soft_quantize_layer=soft_quantize_layer,
+        initial_thresholds=initial_thresholds,
+        threshold_offset=threshold_offset,
+        initial_levels=initial_levels,
+    )
+
+    # -------- Find best checkpoint --------
+    files = [f for f in os.listdir(checkpoints) if f.endswith(".hdf5")]
+    vloss = [float(f.split("-v")[1].split(".hdf5")[0]) for f in files]
+    bestfile = files[np.argmin(vloss)]
+
+    model.load_weights(os.path.join(checkpoints, bestfile))
+    print(f"Best model: {bestfile}")
+
+    # -------- Predict and collect truth --------
+    preds = model.predict(test_generator)
+    truth = np.concatenate([y for _, y in test_generator], axis=0)
+
+    # -------- Define model-specific output schema --------
+    schemas = {
+        "Max":  dict(
+            pred_cols=['x','M11','y','M22','cotA','M33','cotB','M44','M21','M31','M32','M41','M42','M43'],
+            truth_cols=['xtrue','ytrue','cotAtrue','cotBtrue'],
+        ),
+        "Full": dict(
+            pred_cols=['x','y','cotA','cotB','M11','M22','M33','M44'],
+            truth_cols=['xtrue','ytrue','cotAtrue','cotBtrue'],
+        ),
+        "Slim": dict(
+            pred_cols=['x','y','cotB'],
+            truth_cols=['xtrue','ytrue','cotBtrue'],
+        ),
+    }
+
+    key = "Max" if "Max" in model_type else "Full" if "Full" in model_type else "Slim" if "Slim" in model_type else None
+    if key is None:
+        raise ValueError('INVALID model_type: must contain "Max", "Full", or "Slim"')
+
+    pred_cols = schemas[key]["pred_cols"]
+    truth_cols = schemas[key]["truth_cols"]
+
+    df = pd.DataFrame(preds, columns=pred_cols)
+
+    for i, col in enumerate(truth_cols):
+        df[col] = truth[:, i]
+
+    if key == "Max":
+        for m in ["M11","M22","M33","M44"]:
+            df[m] = 1e-9 + tf.math.maximum(df[m], 0.0)
+
+        df["sigmax"]     = abs(df["M11"])
+        df["sigmay"]     = np.sqrt(df["M21"]**2 + df["M22"]**2)
+        df["sigmacotA"]  = np.sqrt(df["M31"]**2 + df["M32"]**2 + df["M33"]**2)
+        df["sigmacotB"]  = np.sqrt(df["M41"]**2 + df["M42"]**2 + df["M43"]**2 + df["M44"]**2)
+
+    elif key == "Full":
+        for m in ["M11","M22","M33","M44"]:
+            df[f"sigma{m[1:].lower()}"] = tf.nn.softplus(df[m]) + 1e-9
+
+    target_names = ["x", "y", "cotA", "cotB"]
+    for i, t in enumerate(target_names):
+        t_pred = t
+        t_true = t + "true"
+        if t_pred in df.columns and t_true in df.columns:
+            df[f"residuals_{t}"] = df[t_true] - df[t_pred]
+
+    os.makedirs(output_directory, exist_ok=True)
+    outfile = f"{output_directory}/{timeslices}t-{model_type}-{train_type}-{fingerprint}-vars.parquet"
+    df.to_parquet(outfile)
+    print(f'Successfully saved to {outfile}')
+    return 1
