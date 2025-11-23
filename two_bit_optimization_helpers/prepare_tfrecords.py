@@ -32,14 +32,17 @@ def generate_tfrecords(
     if select_contained:
         contained_label='_contained'
         select_contained=True
+    slim_label=''
+    if 'Slim' in model_type:
+        slim_label='_slim'
     
     # determine input directories of parquets and output directories of tfrecords
     dataset_train_dir=os.path.join(dataset_dir, f"train{contained_label}")
     dataset_validation_dir=os.path.join(dataset_dir, f"test{contained_label}")
 
     tfrecords_dir=os.path.join(dataset_dir, "TFR_files", f"{timeslices}t")
-    tfrecords_dir_train=os.path.join(tfrecords_dir, f"TFR_train{contained_label}")
-    tfrecords_dir_val  =os.path.join(tfrecords_dir, f"TFR_val{contained_label}")
+    tfrecords_dir_train=os.path.join(tfrecords_dir, f"TFR_train{contained_label}{slim_label}")
+    tfrecords_dir_val  =os.path.join(tfrecords_dir, f"TFR_val{contained_label}{slim_label}")
 
 
     dirs_to_create=[
