@@ -214,8 +214,9 @@ def generate_tfrecords(
         return dataset_train_dir, dataset_validation_dir, tfrecords_dir_train, tfrecords_dir_val
 
 def load_tfrecords(
-    tfrecords_dir_train, 
-    tfrecords_dir_val, 
+    tfrecords_dir_train=None, 
+    tfrecords_dir_val=None,
+    tfrecords_dir_test=None,
     seed=10,
     noise=-1, 
     quantize=False, 
@@ -223,7 +224,22 @@ def load_tfrecords(
     digitize=False,
     digitize_levels=None,
     digitize_thresholds=None,
+    test_only=False,
 ):
+
+    if test_only:
+        test_generator=OptimizedDataGenerator(
+            load_from_tfrecords_dir=tfrecords_dir_test,
+            shuffle=shuffle,
+            seed=seed,
+            noise=noise,
+            quantize=quantize,
+            digitize=digitize,
+            digitize_levels=digitize_levels,
+            digitize_thresholds=digitize_thresholds,
+        )
+        return test_generator
+        
     training_generator=OptimizedDataGenerator(
         load_from_tfrecords_dir=tfrecords_dir_train,
         shuffle=shuffle,
