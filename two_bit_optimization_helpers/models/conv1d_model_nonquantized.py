@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras.layers import (
     Input, Flatten, Activation,
-    AveragePooling2D, Reshape, Concatenate
+    AveragePooling2D, Reshape, Concatenate, Conv1D, Dense
 )
 from keras.models import Model
 from SoftQuantizeLayer import SoftQuantizeLayer
@@ -33,7 +33,7 @@ def _conv_network(var, kernel_size=3):
     ncols = var.shape[2] 
     timeslices = var.shape[3]
     proj_x = AveragePooling2D(
-        pool_size=(1, 21),
+        pool_size=(1, 16),
         strides=None,
         padding="valid",
         data_format=None,
