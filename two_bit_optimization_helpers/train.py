@@ -312,7 +312,7 @@ def save_performance_parquet(
     output_directory,
     test_generator, 
     model_type,
-    train_type,
+    train_type, # full_precision, soft_quantize_layer, 2bit_optimized
     fingerprint,
     timeslices=2,
     soft_quantize_layer=False,
@@ -381,8 +381,14 @@ def save_performance_parquet(
         df["sigmacotB"]  = np.sqrt(df["M41"]**2 + df["M42"]**2 + df["M43"]**2 + df["M44"]**2)
 
     elif key == "Full":
-        for m in ["M11","M22","M33","M44"]:
-            df[f"sigma{m[1:].lower()}"] = tf.nn.softplus(df[m]) + 1e-9
+        mapping = {
+            "M11": "sigmax",
+            "M22": "sigmay",
+            "M33": "sigmacotA",
+            "M44": "sigmacotB",
+        }
+        for m, new_name in mapping.items():
+            df[new_name] = tf.nn.softplus(df[m]) + 1e-9
 
     target_names = ["x", "y", "cotA", "cotB"]
     for i, t in enumerate(target_names):
