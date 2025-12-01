@@ -198,8 +198,6 @@ def train(
     
 def get_best_thresholds(
     checkpoints,
-    dataset_train_dir,
-    dataset_validation_dir, 
     model_type,
     timeslices=2,
     initial_thresholds=[400, 1000, 2000],
