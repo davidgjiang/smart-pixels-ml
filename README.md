@@ -35,5 +35,8 @@ All other parameters are fixed intentionally to maintain consistency across mode
 ## What if I want to test on dataset_2s?
 `two_bit_optimization.ipynb` is only restricted to training, validating, and testing on dataset_3sr so far. We need to test on dataset_2s because that follows a more "realistic" distribution of the physics variables (x ,y, cotAlpha, cotBeta). I still need to add the functionality to automatically generate the TFRecords and test on dataset_2s but as of now, you will have to run a separate notebook to generate these TFRecords, then test on them. `dataset_2s_TFR.ipynb` allows you to generate TFRecords for dataset_2s for full precision TFRecords (make sure you set `to_standardize=True` and `log_compression=True`) and for TFRecords used to be loaded into 2-bits later (make sure you set `to_standardize=False` and `log_compression=False`). Also, for dataset_2s, we are scaling the TFRecords with the same scaling factor as the ones used on the validation/test set of dataset_3src. Just make sure for the slim models, you generate the TFRecords with the manual scaling of only (x, y, cotB) and for the full/max models, you generate the TFRecrods with the manual scaling of all 4 labels (x, y, cotA, cotB).
 
+For testing and saving the parquet files, refer to `vars_from_weights.ipynb`. All the necessary imports and custom helper functions are used to save a performance parquet that is tested on dataset_2s (digitized).
+
+
 
 
