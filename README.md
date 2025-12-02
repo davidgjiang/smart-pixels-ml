@@ -4,30 +4,20 @@ Our strategy to determine the most optimal charge bins relies on attaching a pri
 ## What is the procedure that I have to follow in order to recreate this optimization process?
 The training comes in 2 main parts. 
 
-The **first part** is training a model of your choice with the soft quantize layer. In our example notebook, `part_1_train_soft-quantizer_mlp-SLIM.ipynb`, we are training the `mlp-SLIM` model, which is a multilayer perceptron that predicts 3 outputs: x-midplane, y-midplane, and cot($\beta$). In this notebook, make sure to edit the paths to where you saved your input data and where you want your TFRecords & model checkpoints to be saved to. This includes:
-* `dataset_base_dir`: the "parent" directory where all of your datasets are/will be located
-* `dataset_train_dir`, `dataset_validation_dir`: the subdirectory within `dataset_base_dir` where your input datasets live (ex: dataset_3src_16x16_50x12P5)
-* `tfrecords_dir_train`, `tfrecords_dir_val` the subdirectory within `dataset_base_dir` where your new TFRecords datasets *will* live
-* `base_dir`: the "parent" directory where all of your model checkpoint directories are/will be located
-* `weights-dir`: the subdirectory within `base_dir` that is specific to the training for the soft-quantizer notebook (part 1 notebook)
+**Part 1**: Train the model with the soft quantize layer on a dataset injected with gaussian noise (mean = 0e, sigma = 80e). This dataset should not have any standardization, log compression, or digitization/quantization.
 
-Additionally, for the cell blocks that handle the training and validation generators (creating the TFRecords for train and val), make sure to **comment out ** the line: `#load_from_tfrecords_dir = tfrecords_dir_val` (for validation) and `#load_from_tfrecords_dir = tfrecords_dir_train` (for training). Only uncomment these lines if you already produced these datasets already and do not want to re-generate these TFRecords again (it will overwrite the ones you previously processed).
-
-Other than that, you should just run through all of the cell blocks chronologically.
-
-**After running the first training notebook,** you need to run `manual_input_digitization.ipynb`. This notebook extracts the best model from your `weights-dir` and reads out the charge thresholds and charge levels that are saved in the soft quantize layer. It uses this information to produce new 2-bit digitized inputs from your original full-precision inputs that you fed to the model in part 1. In this notebook, make sure to edit the paths where you saved your input data and where you want your output directory for the 2-bit inputs to be. This includes:
-* `files`: this is the directory where your weights/model checkpoints are located
-* the line with `model.load_weights`: make sure it matches `files`
-* `load_from_tfrecords_dir`: this should be the same location as the validation generator in the part-1 training notebook
-* `output_train_dir`, output_test_dir`: the output directories for the processed 2-bit input datasets
-* `train_files`, `test_files`: the same full-precision training and validation/test directories that you used in the part-1 training notebook
-
-The **second part** is training the same model (ex: mlp-SLIM) without the soft quantize layer. Our example notebook is `part_2_train_model_mlp-SLIM.ipynb`. The goal of this part is to train the model on the 2-bit data that you previously just processed. As always, make sure to update the paths:
-*  `dataset_train_dir`, `dataset_validation_dir`: same directories as the outputs from `manual_input_digitization.ipynb`
-*  `tfrecords_dir_train`, `tfrecords_dir_val`: the names of the TFRecords directories that you want the datagenerators to save to
-*  `base_dir`, `weights_dir`, `load_from_tfrecords_dir`: same as part-1
-
-## How can I save and note down the final model after all this training?
-`vars_from_weights.ipynb` is the final notebook that you need to run. This gives you the name of the best model checkpoint (ex: `Best model: weights.1989-t33.02-v31.84.hdf5`) and saves performance data in an output parquet file to a path of your choice. Just make sure to update the correct paths according to your own local environment!
+**Part 2**: Train the model (omit the soft quantize layer) on the same dataset but digitized to 2-bits according to the 3 charge thresholds obtained from part-1. This dataset should not have any standardization or log compression, but will be digitized to the values of 0.0, 1.0, 2.0 and 3.0.
 
 
+In the notebook `two_bit_optimization.ipynb`, we have the following arguments:
+* `dataset_dir`: Where your dataset is located. It should have `train`, `test`, `train_contained`, `test_contained` like on CERNbox
+* `weights_dir`: The notebook will save the part-1 training checkpoint directory and the part-2 training checkpoint directory here.
+* `performance_dir`: The notebook will save the final parquet file here, which will contain the performance variables (residuals_x, sigmacotB, etc.) of the best model tested on the test set.
+* `model_type`: The model that you are training with. For non-quantized models, we have Conv2D_Max, Conv2D_Full, Conv2D_Slim, Conv1D_Full, Conv1D_Slim, Mlp_Full, and Mlp_Slim. For quantized models, you just need to add a "Q" to the front (ex: QConv2D_Full or QMlp_Slim).
+* `tfrecords_exist`: Set to `False` if you previously have not generated the TFRecords with this notebook. If you are re-running the training pipeline and using the same TFRecords or you are training with a similar model (Full and Max both use the same TFRecords of 4 labels while Slim only uses 3 labels for its TFRecords), then you can set to `True` to save some time. Note: if you are running 2 or more copies of the notebook and generating the TFRrecords from scratch in parallel, it will overwrite one another. Therefore, make sure you finish generating the TFRecords for the first notebook that you set the flag to `False`, then set to `True` for the next notebooks you run in parallel.
+
+The other arguments shouldn't really be changed unless you know what you are doing. This is because we are setting these parameters as fixed for the consistency between the different model trainings and I made them argument just to give the notebook more flexibility (if needed).
+
+---
+## How can I extract the charge thresholds from part 1? 
+The notebook automatically extracts and prints on the charge thresholds but if you exit the notebook to let it run in the background, you cannot really track the cells' progress. However, you can use `get_best_thresholds()` located in `two_bit_optimization_helpers/train.py` to print out these thresholds. Just start up a fresh notebook or script, feed it the path of the part-1 checkpoints directory, model type, threshold offset, etc. and it will return the thresholds and levels. An example is shown in `training_tracker.ipynb` on how to import the function to the notebook and use it (last cell).
