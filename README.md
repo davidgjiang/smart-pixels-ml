@@ -19,7 +19,7 @@ This dataset must not be standardized, log-compressed, digitized, or quantized i
 Train the same model architecture, but without the Soft Quantize Layer, using the same dataset digitized to 2 bits using the three thresholds learned in Part 1.
 This dataset should again have no standardization or log compression, but its values should be digitized to 0.0, 1.0, 2.0, and 3.0.
 
-In the notebook `two_bit_optimization.ipynb`, we have the following arguments:
+To run the optimization process, you just need to change some arguments in `two_bit_optimization.ipynb`, then run all cells. The arguments that require change are:
 * `dataset_dir`: Where your dataset is located. It should have `train`, `test`, `train_contained`, `test_contained` like on CERNbox
 * `weights_dir`: The notebook will save the part-1 training checkpoint directory and the part-2 training checkpoint directory here.
 * `performance_dir`: The notebook will save the final parquet file here, which will contain the performance variables (residuals_x, sigmacotB, etc.) of the best model tested on the test set.
@@ -31,5 +31,6 @@ All other parameters are fixed intentionally to maintain consistency across mode
 ---
 ## How can I extract the charge thresholds from part 1? 
 `two_bit_optimization.ipynb` automatically extracts and prints the values of the charge thresholds. However, most of us want to just click "run all cells" and exit the notebook to let it run in the background to do its thing. However, you can use `get_best_thresholds()` located in `two_bit_optimization_helpers/train.py` to print out these thresholds. Just start up a fresh notebook or script, feed it the path of the part-1 checkpoints directory, model type, threshold offset, etc. and it will return the thresholds and levels. An example is shown in `training_tracker.ipynb` on how to import the function to the notebook (first cell) and use it (last cell).
+
 
 
