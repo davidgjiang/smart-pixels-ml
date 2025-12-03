@@ -1,7 +1,8 @@
 import tensorflow as tf
 from keras.layers import (
     Input, Flatten, Activation,
-    AveragePooling2D, Reshape, Concatenate, Conv1D, Dense
+    AveragePooling2D, Reshape, Concatenate,
+    Conv1D, Dense
 )
 from keras.models import Model
 from SoftQuantizeLayer import SoftQuantizeLayer
@@ -71,21 +72,21 @@ def _conv_network(var, kernel_size=3):
     return var
 
 def Conv1D_Full(shape):
-    x_base = x_in = Input(shape, name="input_pxls")
+    x_base = x_in = Input(shape, name="input_pxls/")
     stack = _conv_network(x_base)
     stack = _var_network(stack, hidden=16, output=8)
     model = Model(inputs=x_in, outputs=stack, name="smrtpxl_regression")
     return model
 
 def Conv1D_Slim(shape):
-    x_base = x_in = Input(shape, name="input_pxls")
+    x_base = x_in = Input(shape, name="input_pxls/")
     stack = _conv_network(x_base)
     stack = _var_network(stack, hidden=16, output=3)
     model = Model(inputs=x_in, outputs=stack, name="smrtpxl_regression")
     return model
 
 def Conv1D_Full_SoftQuantizer(shape, initial_thresholds, threshold_offset, initial_levels=None, trainable_thresholds=True):
-    x_base = x_in = Input(shape, name="input_pxls")
+    x_base = x_in = Input(shape, name="input_pxls/")
     x_base = SoftQuantizeLayer(
         n_bits=2,                     
         initial_thresholds=initial_thresholds,
@@ -103,7 +104,7 @@ def Conv1D_Full_SoftQuantizer(shape, initial_thresholds, threshold_offset, initi
     return model
 
 def Conv1D_Slim_SoftQuantizer(shape, initial_thresholds, threshold_offset, initial_levels=None, trainable_thresholds=True):
-    x_base = x_in = Input(shape, name="input_pxls")
+    x_base = x_in = Input(shape, name="input_pxls/")
     x_base = SoftQuantizeLayer(
         n_bits=2,                     
         initial_thresholds=initial_thresholds,
