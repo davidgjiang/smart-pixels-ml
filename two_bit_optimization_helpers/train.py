@@ -167,6 +167,7 @@ def train(
 
     print('Model fingerprint: {}'.format(fingerprint))
 
+    history = None
     if train_type == 'soft_quantize_layer':
         scheduler_callback = AnnealingScheduler(
             schedule='cosine',  
@@ -176,7 +177,7 @@ def train(
             verbose=1      
         )
     
-        model.fit(
+        history = model.fit(
             x=training_generator,
             validation_data=validation_generator,
             callbacks=[mcp, scheduler_callback],
@@ -185,7 +186,7 @@ def train(
             verbose=verbose
         )
     else:
-        model.fit(
+        history = model.fit(
             x=training_generator,
             validation_data=validation_generator,
             callbacks=[mcp],
@@ -194,7 +195,7 @@ def train(
             verbose=verbose
         )
     
-    return weights_directory, fingerprint
+    return weights_directory, fingerprint, history
     
 def get_best_thresholds(
     checkpoints,

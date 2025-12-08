@@ -1,7 +1,8 @@
 import tensorflow as tf
 from keras.layers import (
     Input, Flatten, Activation,
-    AveragePooling2D, Reshape, Concatenate, Conv1D, Dense
+    AveragePooling2D, Reshape, Concatenate,
+    Conv1D, Dense
 )
 from keras.models import Model
 from SoftQuantizeLayer import SoftQuantizeLayer
