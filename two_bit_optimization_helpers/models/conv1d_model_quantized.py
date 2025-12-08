@@ -85,21 +85,21 @@ def _conv_network(var, kernel_size=3):
     return var
 
 def QConv1D_Full(shape):
-    x_base = x_in = Input(shape, name="input_pxls/")
+    x_base = x_in = Input(shape, name="input_pxls")
     stack = _conv_network(x_base)
     stack = _var_network(stack, hidden=16, output=8)
     model = Model(inputs=x_in, outputs=stack, name="smrtpxl_regression")
     return model
 
 def QConv1D_Slim(shape):
-    x_base = x_in = Input(shape, name="input_pxls/")
+    x_base = x_in = Input(shape, name="input_pxls")
     stack = _conv_network(x_base)
     stack = _var_network(stack, hidden=16, output=3)
     model = Model(inputs=x_in, outputs=stack, name="smrtpxl_regression")
     return model
 
 def QConv1D_Full_SoftQuantizer(shape, initial_thresholds, threshold_offset, initial_levels=None, trainable_thresholds=True):
-    x_base = x_in = Input(shape, name="input_pxls/")
+    x_base = x_in = Input(shape, name="input_pxls")
     x_base = SoftQuantizeLayer(
         n_bits=2,                     
         initial_thresholds=initial_thresholds,
@@ -117,7 +117,7 @@ def QConv1D_Full_SoftQuantizer(shape, initial_thresholds, threshold_offset, init
     return model
 
 def QConv1D_Slim_SoftQuantizer(shape, initial_thresholds, threshold_offset, initial_levels=None, trainable_thresholds=True):
-    x_base = x_in = Input(shape, name="input_pxls/")
+    x_base = x_in = Input(shape, name="input_pxls")
     x_base = SoftQuantizeLayer(
         n_bits=2,                     
         initial_thresholds=initial_thresholds,
