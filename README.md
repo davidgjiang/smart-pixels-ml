@@ -2,6 +2,7 @@
 ## Table of Contents ##
 * [Dataset](#dataset)
 * [Dataset Preprocessing](#dataset-preprocessing)
+* [Part 1: Optimizing Charge Thresholds](#part-1-optimizing-charge-thresholds)
 ---
 ## Dataset ##
 Our datasets are simulated using [TCAD Silvaco](https://silvaco.com/tcad/) for the sensor design and [PixelAV](https://cds.cern.ch/record/687440?ln=en) for the physics within the sensor.
@@ -34,9 +35,52 @@ Fortunately, all of this is taken care of in the `two_bit_optimization.ipynb` no
 
 In order to enable the dataset preprocessing, you must set `tfrecords_exist=False` in the notebook. 
 * `tfrecords_exist=False`: process the relevant parquet files, generate TFRecord copies, then save outputs to the specified directory. These TFRecords will then be loaded into training, validation, and test data-generators.
-* `tfrecords_exist=True`: skip the TFRecord generation step. Load the existing TFRecords into training, validation, and test data-generators. 
+* `tfrecords_exist=True`: skip the TFRecord generation step. Load the existing TFRecords into training, validation, and test data-generators.
+    * **Note: If you already generated the TFRecords for the relevant training, you can use this option**
 
----
+In addition, you must create one directory for the dataset_3sr contained datasets and one directory for the dataset_2s contained dataset. The directory structure should look something like this:
+```
+smart_pixels_datasets/
+├── dataset_3src_16x16_50x12P5_centeredIncidence_parquets/
+│   ├── train_contained/
+│   └── test_contained/
+└── dataset_2sc_16x16_50x12P5_centeredIncidence_parquets/
+    └── test_contained/
+```
+(As you can see, I renamed the parent directories to dataset_3sr**c**... and dataset_2s**c**... to be clear about using the contained datasets.)
+
+The paths for these two directories will need to be added to the path variables in the notebook. So make sure to input the correct value into:
+* `dataset_3src_dir=[YOUR dataset 3sr directory with its train_contained and test_contained datasets]`
+* `dataset_2sc_dir=[YOUR dataset 2s directory with its test_contained dataset]`
+
+Finally, make sure to input the desired model for training: `model_type=[MODEL TYPE]`
+
+When the data preprocessing step is finished, each of your directories will contain a new `TFR_files` subdirectory, which holds the generated TFRecords in `TFR_files/2t/` (for 2-timeslices, which is the default). These TFRecords will be named according to the arguments that you used to create it, for example: `TFR_train_contained` or `TFR_train_contained_slim_std_log`. 
+* `slim`: 3 labels → x-midplane, y-midplane, cotBeta (for slim models ONLY)
+* `std`: inputs are standardized (disabled by default)
+* `log`: inputs are log-compressed (disabled by default)
+
+This is an example of what the new directory structure might look like after the dataset preprocessing step is finished (running for a MAX or FULL model):
+```
+smart_pixels_datasets/
+├── dataset_3src_16x16_50x12P5_centeredIncidence_parquets/
+│   ├── train_contained/
+│   ├── test_contained/
+│   └── TFR_files/
+│       └── 2t/
+│           ├── TFR_train_contained/
+│           └── TFR_test_contained/
+└── dataset_2sc_16x16_50x12P5_centeredIncidence_parquets/
+    ├── test_contained/
+    └── TFR_files/
+        └── 2t/
+            └── TFR_test_contained/
+```
+If you are running the pipeline on a SLIM model, it will produce a `TFR_train_contained_slim` instead of `TFR_train_contained`, for example, and so on. This is taken care of internally.
+
+## Part 1: Optimizing Charge Thresholds ##
+The first step in the 2-bit input compression procedure is to identify the optimal charge thresholds. The model inputs consist of a 16×16 array of two-channel charge values. The objective is to partition these values into four discrete bins, corresponding to the 2-bit encodings (00, 01, 10, 11), such that model performance (measured by the loss) is optimized. This is equivalent to determining three bin boundaries, or physically, three charge thresholds.
+
 
 
 
