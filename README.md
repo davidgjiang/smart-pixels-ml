@@ -5,6 +5,7 @@
 * [Part 1: Optimizing Charge Thresholds](#part-1-optimizing-charge-thresholds)
     * [Path variables](#threshold-optimization-variables-optional-to-change)
     * [Threshold optimization variables](#threshold-optimization-variables-optional-to-change)
+    * [Summary](#summary)
 
 ---
 ## Dataset ##
@@ -95,6 +96,10 @@ The relevant variables to edit are:
 * `threshold_offset=80.0`: this is the standard offset that we have used for all of our trainings, representing 1 standard deviation of charge produced by sensor noise. You can leave this as is or try training without an offset to see if it can potentially improve performance.
 
 You also have the option to skip Part 1 of this notebook by setting the flag `skip_part_1=True`.
+
+
+#### Summary
+In summary, part 1 of the optimization procedure will generate and load the TFRecords for dataset_3src into training and validation data-generators, create the desired model with the soft quantize layer, then train on it for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and its desired charge thresholds will be extracted from its soft quantize layer. Afterwards, the training and validation data-generators are deleted to free up storage.
 
 
 
