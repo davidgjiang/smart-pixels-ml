@@ -6,6 +6,10 @@
     * [Path variables](#threshold-optimization-variables-optional-to-change)
     * [Threshold optimization variables](#threshold-optimization-variables-optional-to-change)
     * [Summary](#summary)
+* [Part 2: Training on Optimized Charge Thresholds](#part-2-training-on-optimized-charge-thresholds)
+    * [Threshold variables](#threshold-variables-only-if-skipping-part-1)
+    * [Summary](#summary-1)
+* [Part 3: Testing on dataset_2sc](#part-3-testing-on-dataset_2sc)
 
 ---
 ## Dataset ##
@@ -59,7 +63,7 @@ The paths for these two directories will need to be added to the path variables 
 
 Finally, make sure to input the desired model for training: `model_type=[MODEL TYPE]`
 
-When the data preprocessing step is finished, each of your directories will contain a new `TFR_files` subdirectory, which holds the generated TFRecords in `TFR_files/2t/` (for 2-timeslices, which is the default). These TFRecords will be named according to the arguments that you used to create it, for example: `TFR_train_contained` or `TFR_train_contained_slim_std_log`. 
+When the data preprocessing step is finished, each of your directories will contain a new `TFR_files` subdirectory, which holds the generated TFRecords in `.../TFR_files/2t` (2-timeslices, which is the default). These TFRecords will be named according to the arguments that you used to create it, for example: `TFR_train_contained` or `TFR_train_contained_slim_std_log`. 
 * `slim`: 3 labels → x-midplane, y-midplane, cotBeta (for slim models ONLY)
 * `std`: inputs are standardized (disabled by default)
 * `log`: inputs are log-compressed (disabled by default)
@@ -97,10 +101,21 @@ The relevant variables to edit are:
 
 You also have the option to skip Part 1 of this notebook by setting the flag `skip_part_1=True`.
 
+#### Summary
+Part 1 of the optimization procedure will generate and load the TFRecords for dataset_3src into training and validation data-generators, add Gaussian noise (mean=0e, stdev=80e), create the desired model with the soft quantize layer, then train on it for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory` with naming convention `weights-[TIMESLICES]t-[MODEL TYPE]-soft_quantize_layer-[FINGERPRINT ID]-checkpoints`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and its desired charge thresholds will be extracted from its soft quantize layer. Afterwards, the training and validation data-generators are deleted to free up storage.
+
+## Part 2: Training on Optimized Charge Thresholds ##
+In this stage of the pipeline, all the required arguments in the notebook are already set (if you followed the above instructions). You do not have to change anything for this part to work. 
+
+#### Threshold variables (ONLY IF SKIPPING PART 1)
+* `skip_part_1=True`: skip all steps in Part 1 (use this if you don't need to determine charge thresholds again and want to use your own
+* `thresholds=[value1, value2, value3]`: these are your custom thresholds that you want to use instead of using Part 1's thresholds
+* `levels=np.array([0.0, 1.0, 2.0, 3.0] dtype=np.float32)`: You don't need to change this -- these are just the output values of the 4 bins.
 
 #### Summary
-In summary, part 1 of the optimization procedure will generate and load the TFRecords for dataset_3src into training and validation data-generators, create the desired model with the soft quantize layer, then train on it for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and its desired charge thresholds will be extracted from its soft quantize layer. Afterwards, the training and validation data-generators are deleted to free up storage.
+Part 2 of the optimization procedure will load the TFRecords for dataset_3src into training and validation data-generators using the thresholds from Part 1. Noise will not be added in this step. The desired model will be created without the soft quantize layer and it will be trained on for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory` with naming convention `weights-[TIMESLICES]t-[MODEL TYPE]-2bit_optimized-[FINGERPRINT ID]-checkpoints`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and tested on by the dataset_3src test set. The resulting file will be saved to `performance_directory`.
 
+## Part 3: Testing on dataset_2sc
 
 
 
