@@ -9,8 +9,6 @@
 * [Part 2: Training on Optimized Charge Thresholds](#part-2-training-on-optimized-charge-thresholds)
     * [Threshold variables](#threshold-variables-only-if-skipping-part-1)
     * [Summary](#summary-1)
-* [Part 3: Testing on dataset_2sc](#part-3-testing-on-dataset_2sc)
-
 ---
 ## Dataset ##
 Our datasets are simulated using [TCAD Silvaco](https://silvaco.com/tcad/) for the sensor design and [PixelAV](https://cds.cern.ch/record/687440?ln=en) for the physics within the sensor.
@@ -114,6 +112,7 @@ In this stage of the pipeline, all the required arguments in the notebook are al
 
 #### Summary
 Part 2 of the optimization procedure will load the TFRecords for dataset_3src into training and validation data-generators using the thresholds from Part 1. Noise will not be added in this step. The desired model will be created without the soft quantize layer and it will be trained on for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory` with naming convention `weights-[TIMESLICES]t-[MODEL TYPE]-2bit_optimized-[FINGERPRINT ID]-checkpoints`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and tested on by the dataset_3src test set. The resulting file will be saved to `performance_directory`. The final step is to test on dataset_2sc. This procedure is essentially the same but also the generation of TFRecords for 2sc is done here as well.
+
 
 
 
