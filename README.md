@@ -1,7 +1,7 @@
 # [Optimization Procedure] Neural Network Input Compression to 2-bit
 ## Table of Contents ##
 * [Dataset](#dataset)
-* [Dataset Processing](#dataset-processing)
+* [Dataset Preprocessing](#dataset-preprocessing)
 ---
 ## Dataset ##
 Our datasets are simulated using [TCAD Silvaco](https://silvaco.com/tcad/) for the sensor design and [PixelAV](https://cds.cern.ch/record/687440?ln=en) for the physics within the sensor.
@@ -27,11 +27,15 @@ You can find them using:
     * [dataset_2s_16x16_50x12P5_centeredIncidence_parquets/test_contained](https://cernbox.cern.ch/files/spaces/eos/project/s/smartpix-box/pixelAV_datasets/shuffled/largerWindowPreliminary/dataset_2s_16x16_50x12P5_centeredIncidence_parquets/test_contained)
 
 ---
-## Dataset Processing ##
+## Dataset Prepocessing ##
 Before initiating any model training, we must first process the datasets from **parquet** format to **TFRecord** format. This is because TFRecords are TensorFlow's native binary data format and optimized for high-throughput model training. It makes the training faster and allows us to process very large datasets.
 
+Fortunately, all of this is taken care of in the `two_bit_optimization.ipynb` notebook. **The notebook goes through the entire training/validation/testing pipeline,** while also handling the pre-processing step beforehand and any additional intermediate steps (such as saving model checkpoints).
 
+In order to enable the dataset preprocessing, you must set `tfrecords_exist=False` in the notebook. 
+* `tfrecords_exist=False`: process the relevant parquet files, generate TFRecord copies, then save outputs to the specified directory. These TFRecords will then be loaded into training, validation, and test data-generators.
+* `tfrecords_exist=True`: skip the TFRecord generation step. Load the existing TFRecords into training, validation, and test data-generators. 
 
-
+---
 
 
