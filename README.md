@@ -3,6 +3,9 @@
 * [Dataset](#dataset)
 * [Dataset Preprocessing](#dataset-preprocessing)
 * [Part 1: Optimizing Charge Thresholds](#part-1-optimizing-charge-thresholds)
+    * [Path variables](#threshold-optimization-variables-optional-to-change)
+    * [Threshold optimization variables](#threshold-optimization-variables-optional-to-change)
+
 ---
 ## Dataset ##
 Our datasets are simulated using [TCAD Silvaco](https://silvaco.com/tcad/) for the sensor design and [PixelAV](https://cds.cern.ch/record/687440?ln=en) for the physics within the sensor.
@@ -33,7 +36,7 @@ Before initiating any model training, we must first process the datasets from **
 
 Fortunately, all of this is taken care of in the `two_bit_optimization.ipynb` notebook. **The notebook goes through the entire training/validation/testing pipeline,** while also handling the pre-processing step beforehand and any additional intermediate steps (such as saving model checkpoints).
 
-In order to enable the dataset preprocessing, you must set `tfrecords_exist=False` in the notebook. 
+In order to enable the dataset preprocessing, you must set `tfrecords_exist=False` and `select_contained=True` in the notebook. 
 * `tfrecords_exist=False`: process the relevant parquet files, generate TFRecord copies, then save outputs to the specified directory. These TFRecords will then be loaded into training, validation, and test data-generators.
 * `tfrecords_exist=True`: skip the TFRecord generation step. Load the existing TFRecords into training, validation, and test data-generators.
     * **Note: If you already generated the TFRecords for the relevant training, you can use this option**
@@ -80,6 +83,18 @@ If you are running the pipeline on a SLIM model, it will produce a `TFR_train_co
 
 ## Part 1: Optimizing Charge Thresholds ##
 The first step in the 2-bit input compression procedure is to identify the optimal charge thresholds. The model inputs consist of a 16×16 array of two-channel charge values. The objective is to partition these values into four discrete bins, corresponding to the 2-bit encodings (00, 01, 10, 11), such that model performance (measured by the loss) is optimized. This is equivalent to determining three bin boundaries, or physically, three charge thresholds.
+
+The relevant variables to edit are:
+
+#### Path variables
+* `weights_directory`: the directory path where you want to save all of the model checkpoints (hdf5 format)
+* `performance_directory`: the directory path where you want to save the results of testing your model on the test sets (parquet format)
+
+#### Threshold optimization variables (OPTIONAL TO CHANGE)
+* `initial_thresholds=[247.8, 668.4, 1662.9]`: these are the starting values for the 3 charge thresholds that were determined from the optimal values trained on a transformer. You can leave this as is or test out your own starting values.
+* `threshold_offset=80.0`: this is the standard offset that we have used for all of our trainings, representing 1 standard deviation of charge produced by sensor noise. You can leave this as is or try training without an offset to see if it can potentially improve performance.
+
+You also have the option to skip Part 1 of this notebook by setting the flag `skip_part_1=True`.
 
 
 
