@@ -41,9 +41,9 @@ Before initiating any model training, we must first process the datasets from **
 
 Fortunately, all of this is taken care of in the `two_bit_optimization.ipynb` notebook. **The notebook goes through the entire training/validation/testing pipeline,** while also handling the pre-processing step beforehand and any additional intermediate steps (such as saving model checkpoints).
 
-In order to enable the dataset preprocessing, you must set `tfrecords_exist=False` and `select_contained=True` in the notebook. 
-* `tfrecords_exist=False`: process the relevant parquet files, generate TFRecord copies, then save outputs to the specified directory. These TFRecords will then be loaded into training, validation, and test data-generators.
-* `tfrecords_exist=True`: skip the TFRecord generation step. Load the existing TFRecords into training, validation, and test data-generators.
+In order to enable the dataset preprocessing, you must set `tfrecords_exist_3src=False`, `tfrecords_exist_2sc=False` and `select_contained=True` in the notebook. 
+* `tfrecords_exist_3src=False`: process the relevant parquet files, generate TFRecord copies, then save outputs to the specified directory. These TFRecords will then be loaded into training, validation, and test data-generators.
+* `tfrecords_exist_3src=True`: skip the TFRecord generation step. Load the existing TFRecords into training, validation, and test data-generators.
     * **Note: If you already generated the TFRecords for the relevant training, you can use this option**
 
 In addition, you must create one directory for the dataset_3sr contained datasets and one directory for the dataset_2s contained dataset. The directory structure should look something like this:
@@ -113,9 +113,8 @@ In this stage of the pipeline, all the required arguments in the notebook are al
 * `levels=np.array([0.0, 1.0, 2.0, 3.0] dtype=np.float32)`: You don't need to change this -- these are just the output values of the 4 bins.
 
 #### Summary
-Part 2 of the optimization procedure will load the TFRecords for dataset_3src into training and validation data-generators using the thresholds from Part 1. Noise will not be added in this step. The desired model will be created without the soft quantize layer and it will be trained on for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory` with naming convention `weights-[TIMESLICES]t-[MODEL TYPE]-2bit_optimized-[FINGERPRINT ID]-checkpoints`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and tested on by the dataset_3src test set. The resulting file will be saved to `performance_directory`.
+Part 2 of the optimization procedure will load the TFRecords for dataset_3src into training and validation data-generators using the thresholds from Part 1. Noise will not be added in this step. The desired model will be created without the soft quantize layer and it will be trained on for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory` with naming convention `weights-[TIMESLICES]t-[MODEL TYPE]-2bit_optimized-[FINGERPRINT ID]-checkpoints`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and tested on by the dataset_3src test set. The resulting file will be saved to `performance_directory`. The final step is to test on dataset_2sc. This procedure is essentially the same but also the generation of TFRecords for 2sc is done here as well.
 
-## Part 3: Testing on dataset_2sc
 
 
 
