@@ -1,7 +1,7 @@
 # [Optimization Procedure] Neural Network Input Compression to 2-bit
 ## Table of Contents ##
-* [Dataset](https://github.com/davidgjiang/smart-pixels-ml/edit/2bit_optimization/README.md#dataset)
-* [Dataset Processing](https://github.com/davidgjiang/smart-pixels-ml/edit/2bit_optimization/README.md#dataset-processing)
+* [Dataset](#dataset)
+* [Dataset Processing](#dataset-processing)
 ---
 ## Dataset ##
 Our datasets are simulated using [TCAD Silvaco](https://silvaco.com/tcad/) for the sensor design and [PixelAV](https://cds.cern.ch/record/687440?ln=en) for the physics within the sensor.
@@ -29,6 +29,7 @@ You can find them using:
 ---
 ## Dataset Processing ##
 Before initiating any model training, we must first process the datasets from **parquet** format to **TFRecord** format. This is because TFRecords are TensorFlow's native binary data format and optimized for high-throughput model training. It makes the training faster and allows us to process very large datasets.
+
 
 
 
