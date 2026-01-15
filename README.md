@@ -16,7 +16,7 @@ Our datasets are simulated using [TCAD Silvaco](https://silvaco.com/tcad/) for t
 The relevant datasets are labeled as `dataset_3sr_16x16_50x12P5_centeredIncidence_parquets` and `dataset_2s_16x16_50x12P5_centeredIncidence_parquets`. 
 * `s` stands for Silvaco (This dataset was generating using TCAD Silvaco)
 * `r` stands for Regression (This dataset was generated to improve regression trainings)
-* `c` stands for Contained (This is a sub-dataset that is filtered to select contained clusters onl).
+* `c` stands for Contained (This is a sub-dataset that is filtered to select contained clusters on)
     * Contained clusters are defined to have < 50 units of charge summed from all edge pixels of the sensor array
 * `16x16` represents the sensor array configuration (16x16 array of pixels)
 * `50x12P5` represents the pixel dimenson (50um x 12.5um x 100um, pitch by thickness)
@@ -106,14 +106,16 @@ Part 1 of the optimization procedure will generate and load the TFRecords for da
 In this stage of the pipeline, all the required arguments in the notebook are already set (if you followed the above instructions). You do not have to change anything for this part to work. 
 
 #### Threshold variables (ONLY IF SKIPPING PART 1)
-* `skip_part_1=True`: skip all steps in Part 1 (use this if you don't need to determine charge thresholds again and want to use your own
-* `thresholds=[value1, value2, value3]`: these are your custom thresholds that you want to use instead of using Part 1's thresholds
-* `levels=np.array([0.0, 1.0, 2.0, 3.0] dtype=np.float32)`: You don't need to change this -- these are just the output values of the 4 bins.
+* `skip_part_1=True`: skip all steps in Part 1.
+    * Use this if you don't need to determine charge thresholds again and want to use your own/a previously saved set of thresholds.
+* `thresholds=[value1, value2, value3]`: these are **your custom thresholds** that will be used to digitize the inputs.
+* `levels=np.array([0.0, 1.0, 2.0, 3.0] dtype=np.float32)`: You don't need to change this -- these are the standard output values of the 4 bins.
 
 You also have the option to skip Part 2 of this notebook by setting the flag `skip_part_2=True`.
 
 #### Summary
-Part 2 of the optimization procedure will load the TFRecords for dataset_3src into training and validation data-generators using the thresholds from Part 1. Noise will not be added in this step. The desired model will be created without the soft quantize layer and it will be trained on for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory` with naming convention `weights-[TIMESLICES]t-[MODEL TYPE]-2bit_optimized-[FINGERPRINT ID]-checkpoints`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and tested on by the dataset_3src test set. The resulting file will be saved to `performance_directory`. The final step is to test on dataset_2sc. This procedure is essentially the same but also the generation of TFRecords for 2sc is done here as well.
+Part 2 of the optimization procedure will load the TFRecords for dataset_3src into training and validation data-generators using the thresholds from Part 1. Noise will not be added in this step. The desired model will be created without the soft quantize layer and it will be trained on for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory` with naming convention `weights-[TIMESLICES]t-[MODEL TYPE]-2bit_optimized-[FINGERPRINT ID]-checkpoints`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and tested on by the dataset_3src test set. The resulting file will be saved to `performance_directory`. The model, training and validation data-generators are then deleted to free up storage. The final step is to test on dataset_2sc. The TFRecords are generated and loaded into a test data-generator with the same charge thresholds as before for the 2-bit input digitization. The desired model is created once again, and the weights & biases from the best model checkpoint (epoch with lowest validation loss) will be loaded in. The model will be tested on the dataset_2sc test set and results will be saved to `performance_directory`. Then the model and test data-generator are deleted to free up storage.
+
 
 
 
