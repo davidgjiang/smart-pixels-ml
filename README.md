@@ -56,8 +56,8 @@ smart_pixels_datasets/
 (As you can see, I renamed the parent directories to dataset_3sr**c**... and dataset_2s**c**... to be clear about using the contained datasets.)
 
 The paths for these two directories will need to be added to the path variables in the notebook. So make sure to input the correct value into:
-* `dataset_3src_dir=[YOUR dataset 3sr directory with its train_contained and test_contained datasets]`
-* `dataset_2sc_dir=[YOUR dataset 2s directory with its test_contained dataset]`
+* `dataset_3src_dir=[YOUR dataset 3sr directory path with its train_contained and test_contained datasets]`
+* `dataset_2sc_dir=[YOUR dataset 2s directory path with its test_contained dataset]`
 
 Finally, make sure to input the desired model for training: `model_type=[MODEL TYPE]`
 
@@ -90,8 +90,8 @@ The first step in the 2-bit input compression procedure is to identify the optim
 The relevant variables to edit are:
 
 #### Path variables
-* `weights_directory`: the directory path where you want to save all of the model checkpoints (hdf5 format)
-* `performance_directory`: the directory path where you want to save the results of testing your model on the test sets (parquet format)
+* `weights_directory`: the directory path where you want to save all of the model checkpoints
+* `performance_directory`: the directory path where you want to save the results of testing your model on the test sets
 
 #### Threshold optimization variables (OPTIONAL TO CHANGE)
 * `initial_thresholds=[247.8, 668.4, 1662.9]`: these are the starting values for the 3 charge thresholds that were determined from the optimal values trained on a transformer. You can leave this as is or test out your own starting values.
@@ -110,8 +110,11 @@ In this stage of the pipeline, all the required arguments in the notebook are al
 * `thresholds=[value1, value2, value3]`: these are your custom thresholds that you want to use instead of using Part 1's thresholds
 * `levels=np.array([0.0, 1.0, 2.0, 3.0] dtype=np.float32)`: You don't need to change this -- these are just the output values of the 4 bins.
 
+You also have the option to skip Part 2 of this notebook by setting the flag `skip_part_2=True`.
+
 #### Summary
 Part 2 of the optimization procedure will load the TFRecords for dataset_3src into training and validation data-generators using the thresholds from Part 1. Noise will not be added in this step. The desired model will be created without the soft quantize layer and it will be trained on for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory` with naming convention `weights-[TIMESLICES]t-[MODEL TYPE]-2bit_optimized-[FINGERPRINT ID]-checkpoints`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and tested on by the dataset_3src test set. The resulting file will be saved to `performance_directory`. The final step is to test on dataset_2sc. This procedure is essentially the same but also the generation of TFRecords for 2sc is done here as well.
+
 
 
 
