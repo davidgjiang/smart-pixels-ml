@@ -10,6 +10,11 @@
     * [Threshold variables](#threshold-variables-only-if-skipping-part-1)
     * [Summary](#summary-1)
 ---
+#### IMPORTANT NOTE:
+
+When using `two_bit_optimization.ipynb`, first edit the relevant parameters/variables and then execute `Restart Kernel and Run All Cells`. If you do not run cells in the pre-defined order, some variables might not be defined yet or you might overwrite other variables. As a result, the process will not go as expected (unless you know what you are doing)
+
+---
 ## Dataset ##
 Our datasets are simulated using [TCAD Silvaco](https://silvaco.com/tcad/) for the sensor design and [PixelAV](https://cds.cern.ch/record/687440?ln=en) for the physics within the sensor.
 
@@ -98,7 +103,19 @@ The relevant variables to edit are:
 * `initial_thresholds=[247.8, 668.4, 1662.9]`: these are the starting values for the 3 charge thresholds that were determined from the optimal values trained on a transformer. You can leave this as is or test out your own starting values.
 * `threshold_offset=80.0`: this is the standard offset that we have used for all of our trainings, representing 1 standard deviation of charge produced by sensor noise. You can leave this as is or try training without an offset to see if it can potentially improve performance.
 
-You also have the option to skip Part 1 of this notebook by setting the flag `skip_part_1=True`.
+You also have the option to skip Part 1 of this notebook by setting the flag `skip_part_1=True`. If you do decide to skip Part 1, make sure to manually set these variables:
+
+* `tfrecords_dir_train=''`: Path to the TFRecords for dataset_3src train_contained
+    * ex: `tfrecords_dir_train='/smart_pixels_datasets/dataset_3src_16x16_50x12P5_centeredIncidence_parquets/TFR_files/2t/TFR_train_contained/'`
+* `tfrecords_dir_val=''`: Path to the TFRecords for dataset_3src test_contained
+    *  ex: `tfrecords_dir_train='/smart_pixels_datasets/dataset_3src_16x16_50x12P5_centeredIncidence_parquets/TFR_files/2t/TFR_test_contained/'`
+* `tfrecords_dir_test=''`: Path to the TFRecords for dataset_2sc test_contained
+    * ex: `'tfrecords_dir_train='/smart_pixels_datasets/dataset_2sc_16x16_50x12P5_centeredIncidence_parquets/TFR_files/2t/TFR_test_contained/'` 
+* `thresholds=[]`: Custom values for the charge thresholds
+    * ex: `thresholds=[100, 200, 300]`
+* `labels_scale=[]`: Custom scaling values of the labels (truth) information
+    * `[x-midplane, y-midplane, cotAlpha, cotBeta]` for Max/Full models
+    * `[x-midplane, y-midplane, cotBeta]` for Slim models
 
 #### Summary
 Part 1 of the optimization procedure will generate and load the TFRecords for dataset_3src into training and validation data-generators, add Gaussian noise (mean=0e, stdev=80e), create the desired model with the soft quantize layer, then train on it for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory` with naming convention `weights-[TIMESLICES]t-[MODEL TYPE]-soft_quantize_layer-[FINGERPRINT ID]-checkpoints`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and its desired charge thresholds will be extracted from its soft quantize layer. Afterwards, the training and validation data-generators are deleted to free up storage.
@@ -116,6 +133,7 @@ You also have the option to skip Part 2 of this notebook by setting the flag `sk
 
 #### Summary
 Part 2 of the optimization procedure will load the TFRecords for dataset_3src into training and validation data-generators using the thresholds from Part 1. Noise will not be added in this step. The desired model will be created without the soft quantize layer and it will be trained on for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory` with naming convention `weights-[TIMESLICES]t-[MODEL TYPE]-2bit_optimized-[FINGERPRINT ID]-checkpoints`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and tested on by the dataset_3src test set. The resulting file will be saved to `performance_directory_3src`. The model, training and validation data-generators are then deleted to free up storage. The final step is to test on dataset_2sc. The TFRecords are generated and loaded into a test data-generator with the same charge thresholds as before for the 2-bit input digitization. The desired model is created once again, and the weights & biases from the best model checkpoint (epoch with lowest validation loss) will be loaded in. The model will be tested on the dataset_2sc test set and results will be saved to `performance_directory_2sc`. Then the model and test data-generator are deleted to free up storage.
+
 
 
 
