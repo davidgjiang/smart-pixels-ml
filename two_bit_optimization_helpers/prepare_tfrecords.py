@@ -122,7 +122,7 @@ def generate_tfrecords(
     
         tfrecords_dir=os.path.join(dataset_dir, "TFR_files", f"{timeslices}t")
         tfrecords_dir_train=os.path.join(tfrecords_dir, f"TFR_train{contained_label}{slim_label}{standardize_label}{log_compression_label}")
-        tfrecords_dir_val=os.path.join(tfrecords_dir, f"TFR_val{contained_label}{slim_label}{standardize_label}{log_compression_label}")
+        tfrecords_dir_val=os.path.join(tfrecords_dir, f"TFR_test{contained_label}{slim_label}{standardize_label}{log_compression_label}")
     
     
         dirs_to_create=[
