@@ -89,6 +89,8 @@ smart_pixels_datasets/
 ```
 If you are running the pipeline on a SLIM model, it will produce a `TFR_train_contained_slim` instead of `TFR_train_contained`, for example, and so on. This is taken care of internally.
 
+In addition, the dataset_2sc test set will have its truth information (labels) scaled with the exact same values as the dataset 3src validation/test set. This is taken care of internally, unless you decided to skip Part 1 (see [Part 1: Optimizing Charge Thresholds](#part-1-optimizing-charge-thresholds))
+
 ## Part 1: Optimizing Charge Thresholds ##
 The first step in the 2-bit input compression procedure is to identify the optimal charge thresholds. The model inputs consist of a 16×16 array of two-channel charge values. The objective is to partition these values into four discrete bins, corresponding to the 2-bit encodings (00, 01, 10, 11), such that model performance (measured by the loss) is optimized. This is equivalent to determining three bin boundaries, or physically, three charge thresholds.
 
@@ -133,6 +135,7 @@ You also have the option to skip Part 2 of this notebook by setting the flag `sk
 
 #### Summary
 Part 2 of the optimization procedure will load the TFRecords for dataset_3src into training and validation data-generators using the thresholds from Part 1. Noise will not be added in this step. The desired model will be created without the soft quantize layer and it will be trained on for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory` with naming convention `weights-[TIMESLICES]t-[MODEL TYPE]-2bit_optimized-[FINGERPRINT ID]-checkpoints`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and tested on by the dataset_3src test set. The resulting file will be saved to `performance_directory_3src`. The model, training and validation data-generators are then deleted to free up storage. The final step is to test on dataset_2sc. The TFRecords are generated and loaded into a test data-generator with the same charge thresholds as before for the 2-bit input digitization. The desired model is created once again, and the weights & biases from the best model checkpoint (epoch with lowest validation loss) will be loaded in. The model will be tested on the dataset_2sc test set and results will be saved to `performance_directory_2sc`. Then the model and test data-generator are deleted to free up storage.
+
 
 
 
