@@ -26,7 +26,7 @@ The relevant datasets are labeled as `dataset_3sr_16x16_50x12P5_centeredIncidenc
 * `16x16` represents the sensor array configuration (16x16 array of pixels)
 * `50x12P5` represents the pixel dimenson (50um x 12.5um x 100um, pitch by thickness)
 
-We are strictly concerned with the **contained cluster** subsets of these datasets. Our training set uses 80 files from dataset_3sr and our validation set uses a different 20 files from dataset_3sr. We test our final models using the same dataset_3sr validation set and a separate test on 100 files from dataset_2s.
+For our experiments, we focus specifically on the **contained-cluster** subsets of these datasets. And in particular, we used an _80/20_ train/validation split on `dataset_3sr`, and evaluate the final models on all _100_ files in `dataset_2s`.
 
 You can find them using:
 * **CERN EOS**
@@ -135,6 +135,7 @@ You also have the option to skip Part 2 of this notebook by setting the flag `sk
 
 #### Summary
 Part 2 of the optimization procedure will load the TFRecords for dataset_3src into training and validation data-generators using the thresholds from Part 1. Noise will not be added in this step. The desired model will be created without the soft quantize layer and it will be trained on for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory` with naming convention `weights-[TIMESLICES]t-[MODEL TYPE]-2bit_optimized-[FINGERPRINT ID]-checkpoints`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and tested on by the dataset_3src test set. The resulting file will be saved to `performance_directory_3src`. The model, training and validation data-generators are then deleted to free up storage. The final step is to test on dataset_2sc. The TFRecords are generated and loaded into a test data-generator with the same charge thresholds as before for the 2-bit input digitization. The desired model is created once again, and the weights & biases from the best model checkpoint (epoch with lowest validation loss) will be loaded in. The model will be tested on the dataset_2sc test set and results will be saved to `performance_directory_2sc`. Then the model and test data-generator are deleted to free up storage.
+
 
 
 
