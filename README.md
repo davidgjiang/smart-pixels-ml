@@ -140,25 +140,32 @@ You also have the option to skip Part 2 of this notebook by setting the flag `sk
 #### Summary
 Part 2 of the optimization procedure will load the TFRecords for dataset_3src into training and validation data-generators using the thresholds from Part 1. Noise will not be added in this step. The desired model will be created without the soft quantize layer and it will be trained on for 1000 epochs. After each epoch, its model checkpoint will be saved to `weights_directory` with naming convention `weights-[TIMESLICES]t-[MODEL TYPE]-2bit_optimized-[FINGERPRINT ID]-checkpoints`. When the final epoch is finished, the best model checkpoint (epoch with lowest validation loss) will be automatically selected and tested on by the dataset_3src test set. The resulting file will be saved to `performance_directory_3src`. The model, training and validation data-generators are then deleted to free up storage. The final step is to test on dataset_2sc. The TFRecords are generated and loaded into a test data-generator with the same charge thresholds as before for the 2-bit input digitization. The desired model is created once again, and the weights & biases from the best model checkpoint (epoch with lowest validation loss) will be loaded in. The model will be tested on the dataset_2sc test set and results will be saved to `performance_directory_2sc`. Then the model and test data-generator are deleted to free up storage.
 
-## Part 3: Comparing Model Performance ##
+## Part 3: Comparing Model and Training Performance ##
 
-Use `comparison_plots.ipynb` to visualize and compare the performance of multiple trained models.
+1) Use `training_tracker.ipynb` to visualize training progression of a **single** model.
+   * This notebook is self-contained, only requiring that training from Part 1 and/or Part 2 is finished. It features:
+        * Training and Validation loss curves plot (Part 1 and/or Part 2 trainings)
+        * Threshold optimization curves plot (Part 1 training)
+        * Extract and print best threshold values (Part 1 training)
 
-#### Configuration
-Edit these variables in the notebook:
-* `MODEL_TYPE`: Set to `'SLIM'`, `'FULL'`, or `'MAX'` depending on your model outputs (comparing different model types is not yet supported)
-* `parquet_files`: List of parquet file paths containing model predictions
-* `labels`, `colors`, `hatches`: Styling for each model in plots
-* `ScalingFactor_*`: Must match the normalization factors used during training
 
-#### Expected Parquet Columns
-* **SLIM**: `x`, `y`, `cotB`, `xtrue`, `ytrue`, `cotBtrue`
-* **FULL/MAX**: Above + `cotA`, `cotAtrue`, `sigmax`, `sigmay`, `sigmacotA`, `sigmacotB`
+2) Use `comparison_plots.ipynb` to visualize and compare the performance of **multiple** trained models.
 
-#### Outputs
-* Residual plots (true - predicted vs true value)
-* Pull plots (FULL/MAX only) with Gaussian fits
-* Summary statistics (mean and std of residuals in physical units)
+   #### Configuration
+   Edit these variables in the notebook:
+   * `MODEL_TYPE`: Set to `'SLIM'`, `'FULL'`, or `'MAX'` depending on your model outputs (comparing different model types is not yet supported)
+   * `parquet_files`: List of parquet file paths containing model predictions
+   * `labels`, `colors`, `hatches`: Styling for each model in plots
+   * `ScalingFactor_*`: Must match the normalization factors used during training
+   
+   #### Expected Parquet Columns
+   * **SLIM**: `x`, `y`, `cotB`, `xtrue`, `ytrue`, `cotBtrue`
+   * **FULL/MAX**: Above + `cotA`, `cotAtrue`, `sigmax`, `sigmay`, `sigmacotA`, `sigmacotB`
+   
+   #### Outputs
+   * Residual plots (true - predicted vs true value)
+   * Pull plots (FULL/MAX only) with Gaussian fits
+   * Summary statistics (mean and std of residuals in physical units)
 
 
 
