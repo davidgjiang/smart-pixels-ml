@@ -10,9 +10,11 @@
     * [Threshold variables](#threshold-variables-only-if-skipping-part-1)
     * [Summary](#summary-1)
 * [Part 3: Comparing Model Performance](#part-3-comparing-model-performance)
-    * [Configuration](#configuration)
-    * [Expected Parquet Columns](#expected-parquet-columns)
-    * [Outputs](#outputs)
+    * [Validating Training of a Single Model](#validating-training-of-a-single-model)
+    * [Comparing Multiple Models](#comparing-multiple-models) 
+       * [Configuration](#configuration)
+       * [Expected Parquet Columns](#expected-parquet-columns)
+       * [Outputs](#outputs)
 ---
 #### IMPORTANT NOTE:
 
@@ -142,13 +144,14 @@ Part 2 of the optimization procedure will load the TFRecords for dataset_3src in
 
 ## Part 3: Comparing Model and Training Performance ##
 
+#### Validating Training of a Single Model
 1) Use `training_tracker.ipynb` to visualize training progression of a **single** model.
    * This notebook is self-contained, only requiring that training from Part 1 and/or Part 2 is finished. It features:
         * Training and Validation loss curves plot (Part 1 and/or Part 2 trainings)
         * Threshold optimization curves plot (Part 1 training)
         * Extract and print best threshold values (Part 1 training)
-
-
+   
+#### Comparing Multiple Models
 2) Use `comparison_plots.ipynb` to visualize and compare the performance of **multiple** trained models.
 
    #### Configuration
@@ -166,6 +169,7 @@ Part 2 of the optimization procedure will load the TFRecords for dataset_3src in
    * Residual plots (true - predicted vs true value)
    * Pull plots (FULL/MAX only) with Gaussian fits
    * Summary statistics (mean and std of residuals in physical units)
+
 
 
 
